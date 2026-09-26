@@ -34,14 +34,23 @@ function App() {
   });
 
   useEffect(() => {
-    loadShipments();
-  }, []);
+    let cancelled = false;
 
-  async function loadShipments() {
-    const res = await fetch(`${API}/api/shipments`);
-    const data = await res.json();
-    setShipments(data);
-  }
+    fetch(`${API}/api/shipments`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setShipments(data);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load shipments:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function openShipment(id) {
     const res = await fetch(`${API}/api/shipments/${id}`);
