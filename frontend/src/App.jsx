@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const API = "https://eve-ship-relay.onrender.com";
+const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const carriers = [
   { id: "CARRIER-01", name: "Night Hauler" },
