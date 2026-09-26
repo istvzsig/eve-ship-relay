@@ -30,6 +30,7 @@ function App() {
     receipt_code: "",
   });
   const [dispatching, setDispatching] = useState(false);
+  const [delivering, setDelivering] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +195,32 @@ function App() {
       );
     } finally {
       setDispatching(false);
+    }
+  }
+
+  async function deliverShipment(id) {
+    setDelivering(true);
+
+    try {
+      const res = await fetch(`${API}/api/shipments/${id}/deliver`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        alert(message);
+        return;
+      }
+
+      const shipment = await res.json();
+
+      setSelected(shipment);
+
+      setShipments((current) =>
+        current.map((item) => (item.id === shipment.id ? shipment : item)),
+      );
+    } finally {
+      setDelivering(false);
     }
   }
 
@@ -493,6 +520,21 @@ function App() {
                           Cyno pilot must be assigned
                         </span>
                       )}
+                  </div>
+                )}
+                {selected.status === "IN_TRANSIT" && (
+                  <div className="dispatch-section">
+                    <button
+                      className="dispatch-button"
+                      disabled={delivering}
+                      onClick={() => deliverShipment(selected.id)}
+                    >
+                      {delivering ? "Delivering..." : "Mark Delivered"}
+                    </button>
+
+                    <span className="dispatch-hint">
+                      Confirm that the shipment reached its destination
+                    </span>
                   </div>
                 )}
               </section>
