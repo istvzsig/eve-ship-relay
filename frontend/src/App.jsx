@@ -19,6 +19,21 @@ function App() {
     setSelected(shipment);
   }
 
+  async function runScan(id) {
+    const res = await fetch(`${API}/api/shipments/${id}/scan`, {
+      method: "POST",
+    });
+
+    const shipment = await res.json();
+
+    console.log("UPDATED SHIPMENT:", shipment);
+
+    setSelected(shipment);
+    setShipments((current) =>
+      current.map((item) => (item.id === shipment.id ? shipment : item)),
+    );
+  }
+
   if (selected) {
     return (
       <div className="app">
@@ -106,6 +121,10 @@ function App() {
             <section className="panel">
               <h3>Asset scan</h3>
 
+              <button onClick={() => runScan(selected.id)}>
+                Run Asset Scan
+              </button>
+
               <div className="scan-result">
                 <div
                   className={selected.asset_scan.passed ? "check" : "failed"}
@@ -130,8 +149,11 @@ function App() {
               <div className="assets">
                 <div>
                   <h4>Expected</h4>
-                  {selected.asset_scan?.expected_modules ??
-                    [].map((module) => <div key={module}>✓ {module}</div>)}
+                  {(selected.asset_scan?.expected_modules ?? []).map(
+                    (module) => (
+                      <div key={module}>✓ {module}</div>
+                    ),
+                  )}
                 </div>
 
                 <div>

@@ -71,7 +71,7 @@ var shipments = []shipment.Shipment{
 		Ship:        "Vargur",
 		Origin:      "Jita",
 		Destination: "Dodixie",
-		Status:      shipment.StatusBlocked,
+		Status:      shipment.StatusReady,
 
 		Contract: shipment.Contract{
 			ID:              "CONTRACT-1040",
