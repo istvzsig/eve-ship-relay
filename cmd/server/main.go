@@ -43,6 +43,7 @@ var shipments = []shipment.Shipment{
 			Passed: true,
 		},
 	},
+
 	{
 		ID:          1041,
 		Ship:        "Rifter",
@@ -51,30 +52,48 @@ var shipments = []shipment.Shipment{
 		Status:      shipment.StatusInTransit,
 
 		Contract: shipment.Contract{
-			ID:              "CONTRACT-1042",
+			ID:              "CONTRACT-1041",
 			PaymentVerified: true,
-			ReceiptCode:     "SR-7F42",
+			ReceiptCode:     "SR-4A21",
 		},
 
+		AbyssalModules: []shipment.AbyssalModule{},
+
 		AssetScan: shipment.AssetScan{
-			ExpectedModules: []string{
-				"Abyssal Energized Adaptive Nano Membrane",
-			},
-			ActualModules: []string{},
-			Passed:        false,
+			ExpectedModules: []string{},
+			ActualModules:   []string{},
+			Passed:          true,
 		},
 	},
+
 	{
 		ID:          1040,
 		Ship:        "Vargur",
 		Origin:      "Jita",
 		Destination: "Dodixie",
-		Status:      shipment.StatusDelivered,
+		Status:      shipment.StatusBlocked,
 
 		Contract: shipment.Contract{
 			ID:              "CONTRACT-1040",
 			PaymentVerified: true,
 			ReceiptCode:     "SR-91BC",
+		},
+
+		AbyssalModules: []shipment.AbyssalModule{
+			{
+				Name:           "Abyssal Large Armor Repairer",
+				ValueISK:       1_200_000_000,
+				Deductible:     240_000_000,
+				DeductiblePaid: false,
+			},
+		},
+
+		AssetScan: shipment.AssetScan{
+			ExpectedModules: []string{
+				"Abyssal Large Armor Repairer",
+			},
+			ActualModules: []string{},
+			Passed:        false,
 		},
 	},
 }
