@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -178,6 +179,11 @@ var cynoPilots = []CynoPilot{
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	handler := api.CORS(http.DefaultServeMux)
 
 	http.HandleFunc("POST /api/shipments", func(w http.ResponseWriter, r *http.Request) {
@@ -536,7 +542,7 @@ func main() {
 	})
 
 	log.Println("ShipRelay listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func modulesMatch(expected, actual []string) bool {
