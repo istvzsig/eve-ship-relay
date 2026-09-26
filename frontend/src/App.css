@@ -257,3 +257,27 @@ button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.new-shipment {
+  margin-bottom: 20px;
+}
+
+.new-shipment form {
+  display: grid;
+  gap: 12px;
+}
+
+.new-shipment input {
+  padding: 12px;
+  border: 1px solid #202632;
+  border-radius: 6px;
+  background: #0b0e14;
+  color: #e6e9ef;
+  font: inherit;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}

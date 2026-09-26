@@ -8,6 +8,15 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [scanning, setScanning] = useState(false);
 
+  const [showNewShipment, setShowNewShipment] = useState(false);
+  const [form, setForm] = useState({
+    ship: "",
+    origin: "",
+    destination: "",
+    contract_id: "",
+    receipt_code: "",
+  });
+
   useEffect(() => {
     fetch(`${API}/api/shipments`)
       .then((res) => res.json())
@@ -38,6 +47,32 @@ function App() {
     } finally {
       setScanning(false);
     }
+  }
+
+  async function createShipment(e) {
+    e.preventDefault();
+
+    const res = await fetch(`${API}/api/shipments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form),
+    });
+
+    const shipment = await res.json();
+
+    setShipments((current) => [shipment, ...current]);
+    setSelected(shipment);
+    setShowNewShipment(false);
+
+    setForm({
+      ship: "",
+      origin: "",
+      destination: "",
+      contract_id: "",
+      receipt_code: "",
+    });
   }
 
   if (selected) {
@@ -195,8 +230,71 @@ function App() {
             <p>Manage incoming and active shipments.</p>
           </div>
 
-          <button>+ New Shipment</button>
+          <button onClick={() => setShowNewShipment(true)}>
+            + New Shipment
+          </button>
         </div>
+
+        {showNewShipment && (
+          <div className="panel new-shipment">
+            <h3>New Shipment</h3>
+
+            <form onSubmit={createShipment}>
+              <input
+                placeholder="Ship"
+                value={form.ship}
+                onChange={(e) => setForm({ ...form, ship: e.target.value })}
+                required
+              />
+
+              <input
+                placeholder="Origin"
+                value={form.origin}
+                onChange={(e) => setForm({ ...form, origin: e.target.value })}
+                required
+              />
+
+              <input
+                placeholder="Destination"
+                value={form.destination}
+                onChange={(e) =>
+                  setForm({ ...form, destination: e.target.value })
+                }
+                required
+              />
+
+              <input
+                placeholder="Contract ID"
+                value={form.contract_id}
+                onChange={(e) =>
+                  setForm({ ...form, contract_id: e.target.value })
+                }
+                required
+              />
+
+              <input
+                placeholder="Receipt code"
+                value={form.receipt_code}
+                onChange={(e) =>
+                  setForm({ ...form, receipt_code: e.target.value })
+                }
+                required
+              />
+
+              <div className="form-actions">
+                <button type="submit">Create Shipment</button>
+
+                <button
+                  type="button"
+                  className="back"
+                  onClick={() => setShowNewShipment(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         <div className="shipments">
           {shipments.map((s) => (

@@ -102,6 +102,56 @@ var shipments = []shipment.Shipment{
 func main() {
 	handler := api.CORS(http.DefaultServeMux)
 
+	http.HandleFunc("POST /api/shipments", func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Ship        string `json:"ship"`
+			Origin      string `json:"origin"`
+			Destination string `json:"destination"`
+			ContractID  string `json:"contract_id"`
+			ReceiptCode string `json:"receipt_code"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		id := 1000
+		for _, s := range shipments {
+			if s.ID >= id {
+				id = s.ID + 1
+			}
+		}
+
+		newShipment := shipment.Shipment{
+			ID:          id,
+			Ship:        input.Ship,
+			Origin:      input.Origin,
+			Destination: input.Destination,
+			Status:      shipment.StatusReady,
+
+			Contract: shipment.Contract{
+				ID:              input.ContractID,
+				PaymentVerified: false,
+				ReceiptCode:     input.ReceiptCode,
+			},
+
+			AbyssalModules: []shipment.AbyssalModule{},
+
+			AssetScan: shipment.AssetScan{
+				ExpectedModules: []string{},
+				ActualModules:   []string{},
+				Passed:          true,
+			},
+		}
+
+		shipments = append(shipments, newShipment)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(newShipment)
+	})
+
 	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
