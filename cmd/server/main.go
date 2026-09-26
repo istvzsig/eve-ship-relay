@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
 )
@@ -42,6 +43,20 @@ func main() {
 	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
+	})
+
+	http.HandleFunc("/api/shipments/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+
+		for _, s := range shipments {
+			if strconv.Itoa(s.ID) == id {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(s)
+				return
+			}
+		}
+
+		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
 	log.Println("ShipRelay listening on :8080")
