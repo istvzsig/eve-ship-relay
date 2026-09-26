@@ -36,6 +36,9 @@ type Shipment struct {
 	AbyssalModules []AbyssalModule `json:"abyssal_modules"`
 
 	AssetScan AssetScan `json:"asset_scan"`
+
+	CynoPilotID   string `json:"cyno_pilot_id"`
+	CynoPilotName string `json:"cyno_pilot_name"`
 }
 
 type AssetScan struct {

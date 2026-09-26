@@ -106,6 +106,17 @@ var shipments = []shipment.Shipment{
 	},
 }
 
+type CynoPilot struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+var cynoPilots = []CynoPilot{
+	{ID: "CYNO-01", Name: "Dark Angel"},
+	{ID: "CYNO-02", Name: "Nightwatch"},
+	{ID: "CYNO-03", Name: "Black Lantern"},
+}
+
 func main() {
 	handler := api.CORS(http.DefaultServeMux)
 
@@ -218,6 +229,52 @@ func main() {
 
 			shipments[i].CarrierID = carrier.ID
 			shipments[i].CarrierName = carrier.Name
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(shipments[i])
+			return
+		}
+
+		http.Error(w, "shipment not found", http.StatusNotFound)
+	})
+
+	http.HandleFunc("POST /api/shipments/{id}/assign-cyno", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid shipment id", http.StatusBadRequest)
+			return
+		}
+
+		var input struct {
+			CynoPilotID string `json:"cyno_pilot_id"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		var pilot *CynoPilot
+
+		for i := range cynoPilots {
+			if cynoPilots[i].ID == input.CynoPilotID {
+				pilot = &cynoPilots[i]
+				break
+			}
+		}
+
+		if pilot == nil {
+			http.Error(w, "cyno pilot not found", http.StatusNotFound)
+			return
+		}
+
+		for i := range shipments {
+			if shipments[i].ID != id {
+				continue
+			}
+
+			shipments[i].CynoPilotID = pilot.ID
+			shipments[i].CynoPilotName = pilot.Name
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shipments[i])

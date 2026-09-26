@@ -16,6 +16,13 @@ function App() {
 
   const [carrierId, setCarrierId] = useState("");
 
+  const [cynoPilotId, setCynoPilotId] = useState("");
+  const [cynoPilots] = useState([
+    { id: "CYNO-01", name: "Dark Angel" },
+    { id: "CYNO-02", name: "Nightwatch" },
+    { id: "CYNO-03", name: "Black Lantern" },
+  ]);
+
   const [showNewShipment, setShowNewShipment] = useState(false);
   const [form, setForm] = useState({
     ship: "",
@@ -103,6 +110,28 @@ function App() {
     );
 
     setCarrierId("");
+  }
+
+  async function assignCyno(id) {
+    const res = await fetch(`${API}/api/shipments/${id}/assign-cyno`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cyno_pilot_id: cynoPilotId,
+      }),
+    });
+
+    const shipment = await res.json();
+
+    setSelected(shipment);
+
+    setShipments((current) =>
+      current.map((item) => (item.id === shipment.id ? shipment : item)),
+    );
+
+    setCynoPilotId("");
   }
 
   async function verifyPayment(id) {
@@ -197,6 +226,35 @@ function App() {
                 <span>Carrier</span>
                 <strong>{selected.carrier_name || "Unassigned"}</strong>
               </div>
+
+              <div className="row">
+                <span>Cyno pilot</span>
+                <strong>{selected.cyno_pilot_name || "Unassigned"}</strong>
+              </div>
+
+              {!selected.cyno_pilot_id && (
+                <div className="form-actions">
+                  <select
+                    value={cynoPilotId}
+                    onChange={(e) => setCynoPilotId(e.target.value)}
+                  >
+                    <option value="">Select cyno pilot</option>
+
+                    {cynoPilots.map((pilot) => (
+                      <option key={pilot.id} value={pilot.id}>
+                        {pilot.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    disabled={!cynoPilotId}
+                    onClick={() => assignCyno(selected.id)}
+                  >
+                    Assign Cyno
+                  </button>
+                </div>
+              )}
 
               {!selected.carrier_id && (
                 <div className="form-actions">
