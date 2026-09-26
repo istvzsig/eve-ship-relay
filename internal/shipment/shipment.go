@@ -32,5 +32,11 @@ type Shipment struct {
 	Contract       Contract        `json:"contract"`
 	AbyssalModules []AbyssalModule `json:"abyssal_modules"`
 
-	AssetScanPassed bool `json:"asset_scan_passed"`
+	AssetScan AssetScan `json:"asset_scan"`
+}
+
+type AssetScan struct {
+	ExpectedModules []string `json:"expected_modules"`
+	ActualModules   []string `json:"actual_modules"`
+	Passed          bool     `json:"passed"`
 }

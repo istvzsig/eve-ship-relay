@@ -32,7 +32,15 @@ var shipments = []shipment.Shipment{
 			},
 		},
 
-		AssetScanPassed: true,
+		AssetScan: shipment.AssetScan{
+			ExpectedModules: []string{
+				"Abyssal Energized Adaptive Nano Membrane",
+			},
+			ActualModules: []string{
+				"Abyssal Energized Adaptive Nano Membrane",
+			},
+			Passed: true,
+		},
 	},
 	{
 		ID:          1041,
@@ -47,7 +55,13 @@ var shipments = []shipment.Shipment{
 			ReceiptCode:     "SR-7F42",
 		},
 
-		AssetScanPassed: true,
+		AssetScan: shipment.AssetScan{
+			ExpectedModules: []string{
+				"Abyssal Energized Adaptive Nano Membrane",
+			},
+			ActualModules: []string{},
+			Passed:        false,
+		},
 	},
 	{
 		ID:          1040,
@@ -61,8 +75,6 @@ var shipments = []shipment.Shipment{
 			PaymentVerified: true,
 			ReceiptCode:     "SR-91BC",
 		},
-
-		AssetScanPassed: true,
 	},
 }
 
@@ -86,6 +98,54 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
+	http.HandleFunc("/api/shipments/{id}/scan", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid shipment id", http.StatusBadRequest)
+			return
+		}
+
+		for i := range shipments {
+			if shipments[i].ID != id {
+				continue
+			}
+
+			shipments[i].AssetScan.Passed = modulesMatch(
+				shipments[i].AssetScan.ExpectedModules,
+				shipments[i].AssetScan.ActualModules,
+			)
+
+			if !shipments[i].AssetScan.Passed {
+				shipments[i].Status = shipment.StatusBlocked
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(shipments[i])
+			return
+		}
+
+		http.Error(w, "shipment not found", http.StatusNotFound)
+	})
+
 	log.Println("ShipRelay listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func modulesMatch(expected, actual []string) bool {
+	if len(expected) != len(actual) {
+		return false
+	}
+
+	expectedSet := make(map[string]struct{}, len(expected))
+	for _, module := range expected {
+		expectedSet[module] = struct{}{}
+	}
+
+	for _, module := range actual {
+		if _, ok := expectedSet[module]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
