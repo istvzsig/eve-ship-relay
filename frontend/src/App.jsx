@@ -18,13 +18,10 @@ const cynoPilots = [
 function App() {
   const [shipments, setShipments] = useState([]);
   const [selected, setSelected] = useState(null);
-
   const [scanning, setScanning] = useState(false);
   const [showNewShipment, setShowNewShipment] = useState(false);
-
   const [carrierId, setCarrierId] = useState("");
   const [cynoPilotId, setCynoPilotId] = useState("");
-
   const [newShipment, setNewShipment] = useState({
     ship: "",
     origin: "",
@@ -32,7 +29,6 @@ function App() {
     contract_id: "",
     receipt_code: "",
   });
-
   const [dispatching, setDispatching] = useState(false);
 
   useEffect(() => {
@@ -462,42 +458,81 @@ function App() {
                     </button>
                   </div>
                 )}
-              </section>
 
-              {selected.status === "READY" && (
-                <div className="dispatch-section">
-                  <button
-                    className="dispatch-button"
-                    disabled={
-                      dispatching ||
-                      !selected.asset_scan?.passed ||
-                      !selected.carrier_id ||
-                      !selected.cyno_pilot_id
-                    }
-                    onClick={() => dispatchShipment(selected.id)}
-                  >
-                    {dispatching ? "Dispatching..." : "Dispatch Shipment"}
-                  </button>
+                {selected.status === "READY" && (
+                  <div className="dispatch-section">
+                    <button
+                      className="dispatch-button"
+                      disabled={
+                        dispatching ||
+                        !selected.asset_scan?.passed ||
+                        !selected.carrier_id ||
+                        !selected.cyno_pilot_id
+                      }
+                      onClick={() => dispatchShipment(selected.id)}
+                    >
+                      {dispatching ? "Dispatching..." : "Dispatch Shipment"}
+                    </button>
 
-                  {!selected.asset_scan?.passed && (
-                    <span className="dispatch-hint">Asset scan must pass</span>
-                  )}
-
-                  {selected.asset_scan?.passed && !selected.carrier_id && (
-                    <span className="dispatch-hint">
-                      Carrier must be assigned
-                    </span>
-                  )}
-
-                  {selected.asset_scan?.passed &&
-                    selected.carrier_id &&
-                    !selected.cyno_pilot_id && (
+                    {!selected.asset_scan?.passed && (
                       <span className="dispatch-hint">
-                        Cyno pilot must be assigned
+                        Asset scan must pass
                       </span>
                     )}
-                </div>
-              )}
+
+                    {selected.asset_scan?.passed && !selected.carrier_id && (
+                      <span className="dispatch-hint">
+                        Carrier must be assigned
+                      </span>
+                    )}
+
+                    {selected.asset_scan?.passed &&
+                      selected.carrier_id &&
+                      !selected.cyno_pilot_id && (
+                        <span className="dispatch-hint">
+                          Cyno pilot must be assigned
+                        </span>
+                      )}
+                  </div>
+                )}
+              </section>
+
+              <section className="panel activity-panel">
+                <h3>Activity</h3>
+
+                {!selected.activities?.length ? (
+                  <p className="muted">No activity yet.</p>
+                ) : (
+                  <div className="activity-list">
+                    {[...selected.activities]
+                      .reverse()
+                      .map((activity, index) => (
+                        <div
+                          className="activity-item"
+                          key={`${activity.timestamp}-${index}`}
+                        >
+                          <div className="activity-dot" />
+
+                          <div className="activity-content">
+                            <strong>{activity.action}</strong>
+
+                            {activity.details && <p>{activity.details}</p>}
+
+                            <span>
+                              {new Date(activity.timestamp).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </section>
             </div>
           </>
         ) : (

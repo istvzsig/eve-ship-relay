@@ -1,5 +1,7 @@
 package shipment
 
+import "time"
+
 type Status string
 
 const (
@@ -39,10 +41,18 @@ type Shipment struct {
 
 	CynoPilotID   string `json:"cyno_pilot_id"`
 	CynoPilotName string `json:"cyno_pilot_name"`
+
+	Activities []Activity `json:"activities"`
 }
 
 type AssetScan struct {
 	ExpectedModules []string `json:"expected_modules"`
 	ActualModules   []string `json:"actual_modules"`
 	Passed          bool     `json:"passed"`
+}
+
+type Activity struct {
+	Timestamp time.Time `json:"timestamp"`
+	Action    string    `json:"action"`
+	Details   string    `json:"details,omitempty"`
 }

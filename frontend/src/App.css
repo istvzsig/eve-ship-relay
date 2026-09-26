@@ -609,3 +609,53 @@ select:focus {
   font-size: 12px;
   text-align: center;
 }
+
+.activity-panel {
+  margin-top: 20px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #202632;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-content strong {
+  font-size: 14px;
+}
+
+.activity-content p {
+  margin: 0;
+  color: #8b94a5;
+  font-size: 13px;
+}
+
+.activity-content span {
+  color: #626b7a;
+  font-size: 11px;
+}

@@ -50,6 +50,36 @@ var shipments = []shipment.Shipment{
 			},
 			Passed: true,
 		},
+
+		CarrierID:     "CARRIER-02",
+		CarrierName:   "Red Freighter",
+		CynoPilotID:   "CYNO-02",
+		CynoPilotName: "Nightwatch",
+
+		Activities: []shipment.Activity{
+			{
+				Timestamp: time.Now().Add(-15 * time.Minute),
+				Action:    "Shipment created",
+			},
+			{
+				Timestamp: time.Now().Add(-13 * time.Minute),
+				Action:    "Payment verified",
+			},
+			{
+				Timestamp: time.Now().Add(-10 * time.Minute),
+				Action:    "Asset scan passed",
+			},
+			{
+				Timestamp: time.Now().Add(-8 * time.Minute),
+				Action:    "Carrier assigned",
+				Details:   "Red Freighter",
+			},
+			{
+				Timestamp: time.Now().Add(-6 * time.Minute),
+				Action:    "Cyno pilot assigned",
+				Details:   "Nightwatch",
+			},
+		},
 	},
 
 	{
@@ -71,6 +101,25 @@ var shipments = []shipment.Shipment{
 			ExpectedModules: []string{},
 			ActualModules:   []string{},
 			Passed:          true,
+		},
+
+		Activities: []shipment.Activity{
+			{
+				Timestamp: time.Now().Add(-45 * time.Minute),
+				Action:    "Shipment created",
+			},
+			{
+				Timestamp: time.Now().Add(-42 * time.Minute),
+				Action:    "Payment verified",
+			},
+			{
+				Timestamp: time.Now().Add(-38 * time.Minute),
+				Action:    "Asset scan passed",
+			},
+			{
+				Timestamp: time.Now().Add(-35 * time.Minute),
+				Action:    "Shipment dispatched",
+			},
 		},
 	},
 
@@ -102,6 +151,17 @@ var shipments = []shipment.Shipment{
 			},
 			ActualModules: []string{},
 			Passed:        false,
+		},
+
+		Activities: []shipment.Activity{
+			{
+				Timestamp: time.Now().Add(-20 * time.Minute),
+				Action:    "Shipment created",
+			},
+			{
+				Timestamp: time.Now().Add(-18 * time.Minute),
+				Action:    "Payment verified",
+			},
 		},
 	},
 }
@@ -135,6 +195,7 @@ func main() {
 		}
 
 		id := 1000
+
 		for _, s := range shipments {
 			if s.ID >= id {
 				id = s.ID + 1
@@ -163,6 +224,8 @@ func main() {
 			},
 		}
 
+		addActivity(&newShipment, "Shipment created", "")
+
 		shipments = append(shipments, newShipment)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -183,6 +246,12 @@ func main() {
 			}
 
 			shipments[i].Contract.PaymentVerified = true
+
+			addActivity(
+				&shipments[i],
+				"Payment verified",
+				"",
+			)
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shipments[i])
@@ -208,16 +277,16 @@ func main() {
 			return
 		}
 
-		var carrier *carrier.Carrier
+		var selectedCarrier *carrier.Carrier
 
 		for i := range carriers {
 			if carriers[i].ID == input.CarrierID {
-				carrier = &carriers[i]
+				selectedCarrier = &carriers[i]
 				break
 			}
 		}
 
-		if carrier == nil {
+		if selectedCarrier == nil {
 			http.Error(w, "carrier not found", http.StatusNotFound)
 			return
 		}
@@ -227,8 +296,14 @@ func main() {
 				continue
 			}
 
-			shipments[i].CarrierID = carrier.ID
-			shipments[i].CarrierName = carrier.Name
+			shipments[i].CarrierID = selectedCarrier.ID
+			shipments[i].CarrierName = selectedCarrier.Name
+
+			addActivity(
+				&shipments[i],
+				"Carrier assigned",
+				selectedCarrier.Name,
+			)
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shipments[i])
@@ -254,16 +329,16 @@ func main() {
 			return
 		}
 
-		var pilot *CynoPilot
+		var selectedPilot *CynoPilot
 
 		for i := range cynoPilots {
 			if cynoPilots[i].ID == input.CynoPilotID {
-				pilot = &cynoPilots[i]
+				selectedPilot = &cynoPilots[i]
 				break
 			}
 		}
 
-		if pilot == nil {
+		if selectedPilot == nil {
 			http.Error(w, "cyno pilot not found", http.StatusNotFound)
 			return
 		}
@@ -273,8 +348,14 @@ func main() {
 				continue
 			}
 
-			shipments[i].CynoPilotID = pilot.ID
-			shipments[i].CynoPilotName = pilot.Name
+			shipments[i].CynoPilotID = selectedPilot.ID
+			shipments[i].CynoPilotName = selectedPilot.Name
+
+			addActivity(
+				&shipments[i],
+				"Cyno pilot assigned",
+				selectedPilot.Name,
+			)
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shipments[i])
@@ -299,26 +380,48 @@ func main() {
 			current := &shipments[i]
 
 			if current.Status != shipment.StatusReady {
-				http.Error(w, "shipment is not ready for dispatch", http.StatusConflict)
+				http.Error(
+					w,
+					"shipment is not ready for dispatch",
+					http.StatusConflict,
+				)
 				return
 			}
 
 			if !current.AssetScan.Passed {
-				http.Error(w, "asset scan failed", http.StatusConflict)
+				http.Error(
+					w,
+					"asset scan failed",
+					http.StatusConflict,
+				)
 				return
 			}
 
 			if current.CarrierID == "" {
-				http.Error(w, "carrier not assigned", http.StatusConflict)
+				http.Error(
+					w,
+					"carrier not assigned",
+					http.StatusConflict,
+				)
 				return
 			}
 
 			if current.CynoPilotID == "" {
-				http.Error(w, "cyno pilot not assigned", http.StatusConflict)
+				http.Error(
+					w,
+					"cyno pilot not assigned",
+					http.StatusConflict,
+				)
 				return
 			}
 
 			current.Status = shipment.StatusInTransit
+
+			addActivity(
+				current,
+				"Shipment dispatched",
+				"",
+			)
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(*current)
@@ -361,17 +464,31 @@ func main() {
 				continue
 			}
 
-			shipments[i].AssetScan.Passed = modulesMatch(
-				shipments[i].AssetScan.ExpectedModules,
-				shipments[i].AssetScan.ActualModules,
+			current := &shipments[i]
+
+			current.AssetScan.Passed = modulesMatch(
+				current.AssetScan.ExpectedModules,
+				current.AssetScan.ActualModules,
 			)
 
-			if !shipments[i].AssetScan.Passed {
-				shipments[i].Status = shipment.StatusBlocked
+			if current.AssetScan.Passed {
+				addActivity(
+					current,
+					"Asset scan passed",
+					"Expected assets are present",
+				)
+			} else {
+				current.Status = shipment.StatusBlocked
+
+				addActivity(
+					current,
+					"Asset scan failed",
+					"Expected assets do not match the ship",
+				)
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(shipments[i])
+			json.NewEncoder(w).Encode(*current)
 			return
 		}
 
@@ -388,6 +505,7 @@ func modulesMatch(expected, actual []string) bool {
 	}
 
 	expectedSet := make(map[string]struct{}, len(expected))
+
 	for _, module := range expected {
 		expectedSet[module] = struct{}{}
 	}
@@ -399,4 +517,12 @@ func modulesMatch(expected, actual []string) bool {
 	}
 
 	return true
+}
+
+func addActivity(s *shipment.Shipment, action, details string) {
+	s.Activities = append(s.Activities, shipment.Activity{
+		Timestamp: time.Now(),
+		Action:    action,
+		Details:   details,
+	})
 }
