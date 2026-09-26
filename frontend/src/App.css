@@ -296,3 +296,150 @@ select {
   gap: 10px;
   margin-top: 16px;
 }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.stat-card {
+  background: #111620;
+  border: 1px solid #202632;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.stat-card span {
+  display: block;
+  color: #7f8796;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 28px;
+}
+
+.section-header {
+  margin: 28px 0 14px;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.section-header p {
+  margin: 5px 0 0;
+  color: #7f8796;
+}
+
+.operations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.operation-card {
+  background: #111620;
+  border: 1px solid #202632;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+.operation-card:hover {
+  border-color: #3a4352;
+  transform: translateY(-1px);
+}
+
+.operation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.shipment-id {
+  color: #7f8796;
+  font-size: 12px;
+}
+
+.operation-header h3 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+
+.route {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  font-size: 15px;
+}
+
+.route span {
+  color: #7f8796;
+}
+
+.operation-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  border-top: 1px solid #202632;
+  padding-top: 16px;
+}
+
+.operation-details span {
+  display: block;
+  color: #7f8796;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.operation-details strong {
+  font-size: 14px;
+}
+
+.success {
+  color: #79d99a;
+}
+
+.failure {
+  color: #ff7777;
+}
+
+.blocked-message {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid #5a2929;
+  border-radius: 6px;
+  color: #ff8585;
+  background: #1a1012;
+  font-size: 13px;
+}
+
+.operation-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  color: #8fa7ff;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .operation-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

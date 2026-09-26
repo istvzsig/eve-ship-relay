@@ -3,28 +3,29 @@ import "./App.css";
 
 const API = "http://localhost:8080";
 
+const carriers = [
+  { id: "CARRIER-01", name: "Night Hauler" },
+  { id: "CARRIER-02", name: "Red Freighter" },
+  { id: "CARRIER-03", name: "Void Runner" },
+];
+
+const cynoPilots = [
+  { id: "CYNO-01", name: "Dark Angel" },
+  { id: "CYNO-02", name: "Nightwatch" },
+  { id: "CYNO-03", name: "Black Lantern" },
+];
+
 function App() {
   const [shipments, setShipments] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [scanning, setScanning] = useState(false);
 
-  const [carriers, setCarriers] = useState([
-    { id: "CARRIER-01", name: "Night Hauler" },
-    { id: "CARRIER-02", name: "Red Freighter" },
-    { id: "CARRIER-03", name: "Void Runner" },
-  ]);
+  const [scanning, setScanning] = useState(false);
+  const [showNewShipment, setShowNewShipment] = useState(false);
 
   const [carrierId, setCarrierId] = useState("");
-
   const [cynoPilotId, setCynoPilotId] = useState("");
-  const [cynoPilots] = useState([
-    { id: "CYNO-01", name: "Dark Angel" },
-    { id: "CYNO-02", name: "Nightwatch" },
-    { id: "CYNO-03", name: "Black Lantern" },
-  ]);
 
-  const [showNewShipment, setShowNewShipment] = useState(false);
-  const [form, setForm] = useState({
+  const [newShipment, setNewShipment] = useState({
     ship: "",
     origin: "",
     destination: "",
@@ -33,15 +34,22 @@ function App() {
   });
 
   useEffect(() => {
-    fetch(`${API}/api/shipments`)
-      .then((res) => res.json())
-      .then(setShipments);
+    loadShipments();
   }, []);
+
+  async function loadShipments() {
+    const res = await fetch(`${API}/api/shipments`);
+    const data = await res.json();
+    setShipments(data);
+  }
 
   async function openShipment(id) {
     const res = await fetch(`${API}/api/shipments/${id}`);
     const shipment = await res.json();
+
     setSelected(shipment);
+    setCarrierId(shipment.carrier_id || "");
+    setCynoPilotId(shipment.cyno_pilot_id || "");
   }
 
   async function runScan(id) {
@@ -64,15 +72,15 @@ function App() {
     }
   }
 
-  async function createShipment(e) {
-    e.preventDefault();
+  async function createShipment(event) {
+    event.preventDefault();
 
     const res = await fetch(`${API}/api/shipments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(form),
+      body: JSON.stringify(newShipment),
     });
 
     const shipment = await res.json();
@@ -81,7 +89,7 @@ function App() {
     setSelected(shipment);
     setShowNewShipment(false);
 
-    setForm({
+    setNewShipment({
       ship: "",
       origin: "",
       destination: "",
@@ -90,7 +98,25 @@ function App() {
     });
   }
 
+  async function verifyPayment(id) {
+    const res = await fetch(`${API}/api/shipments/${id}/verify-payment`, {
+      method: "POST",
+    });
+
+    const shipment = await res.json();
+
+    setSelected(shipment);
+
+    setShipments((current) =>
+      current.map((item) => (item.id === shipment.id ? shipment : item)),
+    );
+  }
+
   async function assignCarrier(id) {
+    if (!carrierId) {
+      return;
+    }
+
     const res = await fetch(`${API}/api/shipments/${id}/assign-carrier`, {
       method: "POST",
       headers: {
@@ -113,6 +139,10 @@ function App() {
   }
 
   async function assignCyno(id) {
+    if (!cynoPilotId) {
+      return;
+    }
+
     const res = await fetch(`${API}/api/shipments/${id}/assign-cyno`, {
       method: "POST",
       headers: {
@@ -134,350 +164,471 @@ function App() {
     setCynoPilotId("");
   }
 
-  async function verifyPayment(id) {
-    const res = await fetch(`${API}/api/shipments/${id}/verify-payment`, {
-      method: "POST",
-    });
-
-    const shipment = await res.json();
-
-    setSelected(shipment);
-
-    setShipments((current) =>
-      current.map((item) => (item.id === shipment.id ? shipment : item)),
-    );
+  function updateNewShipment(field, value) {
+    setNewShipment((current) => ({
+      ...current,
+      [field]: value,
+    }));
   }
 
-  if (selected) {
-    return (
-      <div className="app">
-        <header>
-          <div>
-            <h1>ShipRelay</h1>
-            <p>EVE Online logistics</p>
-          </div>
-          <div className="status">● ONLINE</div>
-        </header>
-
-        <main>
-          <button className="back" onClick={() => setSelected(null)}>
-            ← Back to shipments
-          </button>
-
-          <div className="detail-header">
-            <div>
-              <h2>Shipment #{selected.id}</h2>
-              <p>
-                {selected.ship} · {selected.origin} → {selected.destination}
-              </p>
-            </div>
-
-            <div className={`badge ${selected.status.toLowerCase()}`}>
-              {selected.status.replace("_", " ")}
-            </div>
-          </div>
-
-          <div className="detail-grid">
-            <section className="panel">
-              <h3>Contract</h3>
-
-              <div className="row">
-                <span>Contract</span>
-                <strong>{selected.contract.id}</strong>
-              </div>
-
-              <div className="row">
-                <span>Payment</span>
-                <div>
-                  <strong>
-                    {selected.contract.payment_verified
-                      ? "✓ Verified"
-                      : "✗ Failed"}
-                  </strong>
-
-                  {!selected.contract.payment_verified && (
-                    <button
-                      onClick={() => verifyPayment(selected.id)}
-                      style={{ marginLeft: "12px" }}
-                    >
-                      Verify Payment
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="row">
-                <span>Receipt code</span>
-                <strong>{selected.contract.receipt_code}</strong>
-              </div>
-            </section>
-
-            <section className="panel">
-              <h3>Logistics</h3>
-
-              <div className="row">
-                <span>Route</span>
-                <strong>
-                  {selected.origin} → {selected.destination}
-                </strong>
-              </div>
-
-              <div className="row">
-                <span>Carrier</span>
-                <strong>{selected.carrier_name || "Unassigned"}</strong>
-              </div>
-
-              <div className="row">
-                <span>Cyno pilot</span>
-                <strong>{selected.cyno_pilot_name || "Unassigned"}</strong>
-              </div>
-
-              {!selected.cyno_pilot_id && (
-                <div className="form-actions">
-                  <select
-                    value={cynoPilotId}
-                    onChange={(e) => setCynoPilotId(e.target.value)}
-                  >
-                    <option value="">Select cyno pilot</option>
-
-                    {cynoPilots.map((pilot) => (
-                      <option key={pilot.id} value={pilot.id}>
-                        {pilot.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    disabled={!cynoPilotId}
-                    onClick={() => assignCyno(selected.id)}
-                  >
-                    Assign Cyno
-                  </button>
-                </div>
-              )}
-
-              {!selected.carrier_id && (
-                <div className="form-actions">
-                  <select
-                    value={carrierId}
-                    onChange={(e) => setCarrierId(e.target.value)}
-                  >
-                    <option value="">Select carrier</option>
-
-                    {carriers.map((carrier) => (
-                      <option key={carrier.id} value={carrier.id}>
-                        {carrier.name}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    disabled={!carrierId}
-                    onClick={() => assignCarrier(selected.id)}
-                  >
-                    Assign Carrier
-                  </button>
-                </div>
-              )}
-            </section>
-
-            <section className="panel">
-              <h3>Abyssal modules</h3>
-
-              {!selected.abyssal_modules?.length ? (
-                <p className="muted">No abyssal modules.</p>
-              ) : (
-                selected.abyssal_modules.map((module) => (
-                  <div className="module" key={module.name}>
-                    <strong>{module.name}</strong>
-
-                    <div className="row">
-                      <span>Value</span>
-                      <strong>{formatISK(module.value_isk)}</strong>
-                    </div>
-
-                    <div className="row">
-                      <span>Deductible</span>
-                      <strong>{formatISK(module.deductible_isk)}</strong>
-                    </div>
-
-                    <div className="row">
-                      <span>Status</span>
-                      <strong>
-                        {module.deductible_paid ? "✓ Paid" : "⚠ Unpaid"}
-                      </strong>
-                    </div>
-                  </div>
-                ))
-              )}
-            </section>
-
-            <section className="panel">
-              <h3>Asset scan</h3>
-
-              <button onClick={() => runScan(selected.id)} disabled={scanning}>
-                {scanning ? "Scanning..." : "Run Asset Scan"}
-              </button>
-
-              <div className="scan-result">
-                <div
-                  className={selected.asset_scan.passed ? "check" : "failed"}
-                >
-                  {selected.asset_scan?.passed ? "✓" : "✗"}
-                </div>
-
-                <div>
-                  <strong>
-                    {selected.asset_scan?.passed
-                      ? "Scan passed"
-                      : "Scan failed"}
-                  </strong>
-                  <p>
-                    {selected.asset_scan?.passed
-                      ? "Expected assets are present."
-                      : "Expected assets do not match the ship."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="assets">
-                <div>
-                  <h4>Expected</h4>
-                  {(selected.asset_scan?.expected_modules ?? []).map(
-                    (module) => (
-                      <div key={module}>✓ {module}</div>
-                    ),
-                  )}
-                </div>
-
-                <div>
-                  <h4>Actual</h4>
-                  {(selected.asset_scan?.actual_modules ?? []).length === 0
-                    ? "No modules detected"
-                    : selected.asset_scan.actual_modules.map((module) => (
-                        <div key={module}>✓ {module}</div>
-                      ))}
-                </div>
-              </div>
-            </section>
-          </div>
-        </main>
-      </div>
-    );
+  function statusClass(status) {
+    return status.toLowerCase();
   }
+
+  function statusLabel(status) {
+    return status.replace("_", " ");
+  }
+
+  const readyCount = shipments.filter(
+    (shipment) => shipment.status === "READY",
+  ).length;
+
+  const blockedCount = shipments.filter(
+    (shipment) => shipment.status === "BLOCKED",
+  ).length;
+
+  const inTransitCount = shipments.filter(
+    (shipment) => shipment.status === "IN_TRANSIT",
+  ).length;
+
+  const deliveredCount = shipments.filter(
+    (shipment) => shipment.status === "DELIVERED",
+  ).length;
 
   return (
     <div className="app">
-      <header>
+      <header className="header">
         <div>
           <h1>ShipRelay</h1>
-          <p>EVE Online logistics</p>
+          <span>EVE Online Logistics</span>
         </div>
-        <div className="status">● ONLINE</div>
+
+        <div className="online">
+          <span className="online-dot" />
+          ONLINE
+        </div>
       </header>
 
       <main>
-        <div className="page-header">
-          <div>
-            <h2>Shipments</h2>
-            <p>Manage incoming and active shipments.</p>
-          </div>
-
-          <button onClick={() => setShowNewShipment(true)}>
-            + New Shipment
-          </button>
-        </div>
-
-        {showNewShipment && (
-          <div className="panel new-shipment">
-            <h3>New Shipment</h3>
-
-            <form onSubmit={createShipment}>
-              <input
-                placeholder="Ship"
-                value={form.ship}
-                onChange={(e) => setForm({ ...form, ship: e.target.value })}
-                required
-              />
-
-              <input
-                placeholder="Origin"
-                value={form.origin}
-                onChange={(e) => setForm({ ...form, origin: e.target.value })}
-                required
-              />
-
-              <input
-                placeholder="Destination"
-                value={form.destination}
-                onChange={(e) =>
-                  setForm({ ...form, destination: e.target.value })
-                }
-                required
-              />
-
-              <input
-                placeholder="Contract ID"
-                value={form.contract_id}
-                onChange={(e) =>
-                  setForm({ ...form, contract_id: e.target.value })
-                }
-                required
-              />
-
-              <input
-                placeholder="Receipt code"
-                value={form.receipt_code}
-                onChange={(e) =>
-                  setForm({ ...form, receipt_code: e.target.value })
-                }
-                required
-              />
-
-              <div className="form-actions">
-                <button type="submit">Create Shipment</button>
-
-                <button
-                  type="button"
-                  className="back"
-                  onClick={() => setShowNewShipment(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="shipments">
-          {shipments.map((s) => (
-            <button
-              className="shipment-card"
-              key={s.id}
-              onClick={() => openShipment(s.id)}
-            >
-              <div>
-                <strong>#{s.id}</strong>
-                <span className="ship">{s.ship}</span>
-              </div>
-
-              <div className="route">
-                {s.origin} → {s.destination}
-              </div>
-
-              <div className={`badge ${s.status.toLowerCase()}`}>
-                {s.status.replace("_", " ")}
-              </div>
+        {selected ? (
+          <>
+            <button className="back-button" onClick={() => setSelected(null)}>
+              ← Back to Operations
             </button>
-          ))}
-        </div>
+
+            <div className="page-header">
+              <div>
+                <span className="shipment-id">SHIPMENT #{selected.id}</span>
+
+                <h2>{selected.ship}</h2>
+
+                <p>
+                  {selected.origin} → {selected.destination}
+                </p>
+              </div>
+
+              <span className={`status ${statusClass(selected.status)}`}>
+                {statusLabel(selected.status)}
+              </span>
+            </div>
+
+            <div className="detail-grid">
+              <section className="panel">
+                <h3>Contract</h3>
+
+                <div className="row">
+                  <span>Contract ID</span>
+                  <strong>{selected.contract?.id || "Unknown"}</strong>
+                </div>
+
+                <div className="row">
+                  <span>Payment</span>
+                  <strong>
+                    {selected.contract?.payment_verified
+                      ? "✓ Verified"
+                      : "✕ Not Verified"}
+                  </strong>
+                </div>
+
+                <div className="row">
+                  <span>Receipt Code</span>
+                  <strong>{selected.contract?.receipt_code || "—"}</strong>
+                </div>
+
+                {!selected.contract?.payment_verified && (
+                  <div className="form-actions">
+                    <button onClick={() => verifyPayment(selected.id)}>
+                      Verify Payment
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <section className="panel">
+                <h3>Abyssal Modules</h3>
+
+                {(selected.abyssal_modules ?? []).length === 0 ? (
+                  <p className="muted">No abyssal modules declared.</p>
+                ) : (
+                  selected.abyssal_modules.map((module) => (
+                    <div className="module" key={module.name}>
+                      <div>
+                        <strong>{module.name}</strong>
+
+                        <span>
+                          Value: {module.value_isk.toLocaleString()} ISK
+                        </span>
+
+                        <span>
+                          Deductible: {module.deductible_isk.toLocaleString()}{" "}
+                          ISK
+                        </span>
+                      </div>
+
+                      <span
+                        className={
+                          module.deductible_paid ? "success" : "failure"
+                        }
+                      >
+                        {module.deductible_paid ? "PAID" : "UNPAID"}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </section>
+
+              <section className="panel">
+                <div className="panel-header">
+                  <h3>Asset Scan</h3>
+
+                  <button
+                    onClick={() => runScan(selected.id)}
+                    disabled={scanning}
+                  >
+                    {scanning ? "Scanning..." : "Run Asset Scan"}
+                  </button>
+                </div>
+
+                {selected.asset_scan?.passed ? (
+                  <div className="scan-result passed">
+                    <div className="check">✓</div>
+
+                    <div>
+                      <strong>Scan Passed</strong>
+                      <span>Ship contents match the expected assets.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="scan-result failed">
+                    <div className="check">✕</div>
+
+                    <div>
+                      <strong>Scan Failed</strong>
+                      <span>Expected assets were not detected.</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="scan-columns">
+                  <div>
+                    <h4>Expected</h4>
+
+                    {(selected.asset_scan?.expected_modules ?? []).length ===
+                    0 ? (
+                      <span className="muted">No modules expected</span>
+                    ) : (
+                      selected.asset_scan.expected_modules.map((module) => (
+                        <div key={module}>✓ {module}</div>
+                      ))
+                    )}
+                  </div>
+
+                  <div>
+                    <h4>Detected</h4>
+
+                    {(selected.asset_scan?.actual_modules ?? []).length ===
+                    0 ? (
+                      <span className="muted">No modules detected</span>
+                    ) : (
+                      selected.asset_scan.actual_modules.map((module) => (
+                        <div key={module}>✓ {module}</div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="panel">
+                <h3>Logistics</h3>
+
+                <div className="row">
+                  <span>Route</span>
+                  <strong>
+                    {selected.origin} → {selected.destination}
+                  </strong>
+                </div>
+
+                <div className="row">
+                  <span>Carrier</span>
+                  <strong>{selected.carrier_name || "Unassigned"}</strong>
+                </div>
+
+                {!selected.carrier_id && (
+                  <div className="form-actions">
+                    <select
+                      value={carrierId}
+                      onChange={(event) => setCarrierId(event.target.value)}
+                    >
+                      <option value="">Select carrier</option>
+
+                      {carriers.map((carrier) => (
+                        <option key={carrier.id} value={carrier.id}>
+                          {carrier.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      disabled={!carrierId}
+                      onClick={() => assignCarrier(selected.id)}
+                    >
+                      Assign Carrier
+                    </button>
+                  </div>
+                )}
+
+                <div className="row">
+                  <span>Cyno Pilot</span>
+                  <strong>{selected.cyno_pilot_name || "Unassigned"}</strong>
+                </div>
+
+                {!selected.cyno_pilot_id && (
+                  <div className="form-actions">
+                    <select
+                      value={cynoPilotId}
+                      onChange={(event) => setCynoPilotId(event.target.value)}
+                    >
+                      <option value="">Select cyno pilot</option>
+
+                      {cynoPilots.map((pilot) => (
+                        <option key={pilot.id} value={pilot.id}>
+                          {pilot.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      disabled={!cynoPilotId}
+                      onClick={() => assignCyno(selected.id)}
+                    >
+                      Assign Cyno
+                    </button>
+                  </div>
+                )}
+              </section>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="page-header">
+              <div>
+                <h2>Operations</h2>
+                <p>Monitor current logistics operations.</p>
+              </div>
+
+              <button onClick={() => setShowNewShipment(true)}>
+                + New Shipment
+              </button>
+            </div>
+
+            {showNewShipment && (
+              <section className="panel new-shipment">
+                <div className="panel-header">
+                  <h3>New Shipment</h3>
+
+                  <button
+                    className="secondary"
+                    onClick={() => setShowNewShipment(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <form onSubmit={createShipment}>
+                  <div className="form-grid">
+                    <label>
+                      Ship
+                      <input
+                        value={newShipment.ship}
+                        onChange={(event) =>
+                          updateNewShipment("ship", event.target.value)
+                        }
+                        placeholder="e.g. Ishtar"
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Origin
+                      <input
+                        value={newShipment.origin}
+                        onChange={(event) =>
+                          updateNewShipment("origin", event.target.value)
+                        }
+                        placeholder="e.g. Jita"
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Destination
+                      <input
+                        value={newShipment.destination}
+                        onChange={(event) =>
+                          updateNewShipment("destination", event.target.value)
+                        }
+                        placeholder="e.g. Amarr"
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Contract ID
+                      <input
+                        value={newShipment.contract_id}
+                        onChange={(event) =>
+                          updateNewShipment("contract_id", event.target.value)
+                        }
+                        placeholder="CONTRACT-XXXX"
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      Receipt Code
+                      <input
+                        value={newShipment.receipt_code}
+                        onChange={(event) =>
+                          updateNewShipment("receipt_code", event.target.value)
+                        }
+                        placeholder="SR-XXXX"
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <div className="form-actions">
+                    <button type="submit">Create Shipment</button>
+                  </div>
+                </form>
+              </section>
+            )}
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <span>READY</span>
+                <strong>{readyCount}</strong>
+              </div>
+
+              <div className="stat-card">
+                <span>BLOCKED</span>
+                <strong>{blockedCount}</strong>
+              </div>
+
+              <div className="stat-card">
+                <span>IN TRANSIT</span>
+                <strong>{inTransitCount}</strong>
+              </div>
+
+              <div className="stat-card">
+                <span>DELIVERED</span>
+                <strong>{deliveredCount}</strong>
+              </div>
+            </div>
+
+            <div className="section-header">
+              <div>
+                <h2>Active Shipments</h2>
+                <p>Monitor current logistics operations.</p>
+              </div>
+            </div>
+
+            <div className="operations-list">
+              {shipments.map((shipment) => (
+                <article
+                  key={shipment.id}
+                  className="operation-card"
+                  onClick={() => openShipment(shipment.id)}
+                >
+                  <div className="operation-header">
+                    <div>
+                      <span className="shipment-id">#{shipment.id}</span>
+
+                      <h3>{shipment.ship}</h3>
+                    </div>
+
+                    <span className={`status ${statusClass(shipment.status)}`}>
+                      {statusLabel(shipment.status)}
+                    </span>
+                  </div>
+
+                  <div className="route">
+                    <strong>{shipment.origin}</strong>
+                    <span>→</span>
+                    <strong>{shipment.destination}</strong>
+                  </div>
+
+                  <div className="operation-details">
+                    <div>
+                      <span>Carrier</span>
+                      <strong>{shipment.carrier_name || "Unassigned"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Cyno</span>
+                      <strong>
+                        {shipment.cyno_pilot_name || "Unassigned"}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Payment</span>
+                      <strong>
+                        {shipment.contract?.payment_verified
+                          ? "✓ Verified"
+                          : "✕ Pending"}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Asset Scan</span>
+                      <strong
+                        className={
+                          shipment.asset_scan?.passed ? "success" : "failure"
+                        }
+                      >
+                        {shipment.asset_scan?.passed ? "✓ Passed" : "✕ Failed"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {shipment.status === "BLOCKED" && (
+                    <div className="blocked-message">
+                      Asset verification failed — shipment blocked.
+                    </div>
+                  )}
+
+                  <div className="operation-footer">
+                    <span>Open shipment →</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
-}
-
-function formatISK(value) {
-  return `${new Intl.NumberFormat("en-US").format(value)} ISK`;
 }
 
 export default App;
