@@ -284,6 +284,50 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
+	http.HandleFunc("POST /api/shipments/{id}/dispatch", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid shipment id", http.StatusBadRequest)
+			return
+		}
+
+		for i := range shipments {
+			if shipments[i].ID != id {
+				continue
+			}
+
+			current := &shipments[i]
+
+			if current.Status != shipment.StatusReady {
+				http.Error(w, "shipment is not ready for dispatch", http.StatusConflict)
+				return
+			}
+
+			if !current.AssetScan.Passed {
+				http.Error(w, "asset scan failed", http.StatusConflict)
+				return
+			}
+
+			if current.CarrierID == "" {
+				http.Error(w, "carrier not assigned", http.StatusConflict)
+				return
+			}
+
+			if current.CynoPilotID == "" {
+				http.Error(w, "cyno pilot not assigned", http.StatusConflict)
+				return
+			}
+
+			current.Status = shipment.StatusInTransit
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(*current)
+			return
+		}
+
+		http.Error(w, "shipment not found", http.StatusNotFound)
+	})
+
 	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
