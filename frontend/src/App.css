@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: #0b0e14;
+  color: #e6e9ef;
+}
+
+button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  background: #5865f2;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+header {
+  height: 72px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #202632;
+  background: #0f131b;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+header p {
+  margin: 3px 0 0;
+  color: #7f8999;
+  font-size: 13px;
+}
+
+.status {
+  font-size: 12px;
+  color: #65d391;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
+.page-header p {
+  margin: 6px 0 0;
+  color: #7f8999;
+}
+
+.shipments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shipment-card {
+  display: grid;
+  grid-template-columns: 220px 1fr 130px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid #202632;
+  border-radius: 8px;
+  background: #111620;
+}
+
+.shipment-card strong {
+  margin-right: 16px;
+  color: #8d96a8;
+}
+
+.ship {
+  font-weight: 600;
+}
+
+.route {
+  color: #b7bfcd;
+}
+
+.badge {
+  justify-self: end;
+  padding: 5px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ready {
+  background: #183d2a;
+  color: #70db99;
+}
+
+.in_transit {
+  background: #352d16;
+  color: #e6c65c;
+}
+
+.delivered {
+  background: #202832;
+  color: #9ba8b8;
+}
+
+.blocked {
+  background: #451e25;
+  color: #ff7f8d;
+}

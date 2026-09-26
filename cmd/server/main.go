@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/istvzsig/eve-ship-relay/internal/api"
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
 )
 
@@ -79,6 +80,8 @@ var shipments = []shipment.Shipment{
 }
 
 func main() {
+	handler := api.CORS(http.DefaultServeMux)
+
 	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
@@ -128,7 +131,7 @@ func main() {
 	})
 
 	log.Println("ShipRelay listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
 func modulesMatch(expected, actual []string) bool {
