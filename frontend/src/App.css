@@ -590,3 +590,22 @@ select:focus {
     grid-template-columns: 1fr;
   }
 }
+
+.dispatch-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #202632;
+}
+
+.dispatch-button {
+  width: 100%;
+  padding: 12px;
+}
+
+.dispatch-hint {
+  display: block;
+  margin-top: 8px;
+  color: #6f7888;
+  font-size: 12px;
+  text-align: center;
+}

@@ -33,6 +33,8 @@ function App() {
     receipt_code: "",
   });
 
+  const [dispatching, setDispatching] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -171,6 +173,32 @@ function App() {
     );
 
     setCynoPilotId("");
+  }
+
+  async function dispatchShipment(id) {
+    setDispatching(true);
+
+    try {
+      const res = await fetch(`${API}/api/shipments/${id}/dispatch`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        alert(message);
+        return;
+      }
+
+      const shipment = await res.json();
+
+      setSelected(shipment);
+
+      setShipments((current) =>
+        current.map((item) => (item.id === shipment.id ? shipment : item)),
+      );
+    } finally {
+      setDispatching(false);
+    }
   }
 
   function updateNewShipment(field, value) {
@@ -435,6 +463,41 @@ function App() {
                   </div>
                 )}
               </section>
+
+              {selected.status === "READY" && (
+                <div className="dispatch-section">
+                  <button
+                    className="dispatch-button"
+                    disabled={
+                      dispatching ||
+                      !selected.asset_scan?.passed ||
+                      !selected.carrier_id ||
+                      !selected.cyno_pilot_id
+                    }
+                    onClick={() => dispatchShipment(selected.id)}
+                  >
+                    {dispatching ? "Dispatching..." : "Dispatch Shipment"}
+                  </button>
+
+                  {!selected.asset_scan?.passed && (
+                    <span className="dispatch-hint">Asset scan must pass</span>
+                  )}
+
+                  {selected.asset_scan?.passed && !selected.carrier_id && (
+                    <span className="dispatch-hint">
+                      Carrier must be assigned
+                    </span>
+                  )}
+
+                  {selected.asset_scan?.passed &&
+                    selected.carrier_id &&
+                    !selected.cyno_pilot_id && (
+                      <span className="dispatch-hint">
+                        Cyno pilot must be assigned
+                      </span>
+                    )}
+                </div>
+              )}
             </div>
           </>
         ) : (
