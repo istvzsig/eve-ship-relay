@@ -75,6 +75,20 @@ function App() {
     });
   }
 
+  async function verifyPayment(id) {
+    const res = await fetch(`${API}/api/shipments/${id}/verify-payment`, {
+      method: "POST",
+    });
+
+    const shipment = await res.json();
+
+    setSelected(shipment);
+
+    setShipments((current) =>
+      current.map((item) => (item.id === shipment.id ? shipment : item)),
+    );
+  }
+
   if (selected) {
     return (
       <div className="app">
@@ -115,11 +129,22 @@ function App() {
 
               <div className="row">
                 <span>Payment</span>
-                <strong>
-                  {selected.contract.payment_verified
-                    ? "✓ Verified"
-                    : "✗ Failed"}
-                </strong>
+                <div>
+                  <strong>
+                    {selected.contract.payment_verified
+                      ? "✓ Verified"
+                      : "✗ Failed"}
+                  </strong>
+
+                  {!selected.contract.payment_verified && (
+                    <button
+                      onClick={() => verifyPayment(selected.id)}
+                      style={{ marginLeft: "12px" }}
+                    >
+                      Verify Payment
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="row">
