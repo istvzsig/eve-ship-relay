@@ -8,6 +8,14 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [scanning, setScanning] = useState(false);
 
+  const [carriers, setCarriers] = useState([
+    { id: "CARRIER-01", name: "Night Hauler" },
+    { id: "CARRIER-02", name: "Red Freighter" },
+    { id: "CARRIER-03", name: "Void Runner" },
+  ]);
+
+  const [carrierId, setCarrierId] = useState("");
+
   const [showNewShipment, setShowNewShipment] = useState(false);
   const [form, setForm] = useState({
     ship: "",
@@ -73,6 +81,28 @@ function App() {
       contract_id: "",
       receipt_code: "",
     });
+  }
+
+  async function assignCarrier(id) {
+    const res = await fetch(`${API}/api/shipments/${id}/assign-carrier`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        carrier_id: carrierId,
+      }),
+    });
+
+    const shipment = await res.json();
+
+    setSelected(shipment);
+
+    setShipments((current) =>
+      current.map((item) => (item.id === shipment.id ? shipment : item)),
+    );
+
+    setCarrierId("");
   }
 
   async function verifyPayment(id) {
@@ -151,6 +181,46 @@ function App() {
                 <span>Receipt code</span>
                 <strong>{selected.contract.receipt_code}</strong>
               </div>
+            </section>
+
+            <section className="panel">
+              <h3>Logistics</h3>
+
+              <div className="row">
+                <span>Route</span>
+                <strong>
+                  {selected.origin} → {selected.destination}
+                </strong>
+              </div>
+
+              <div className="row">
+                <span>Carrier</span>
+                <strong>{selected.carrier_name || "Unassigned"}</strong>
+              </div>
+
+              {!selected.carrier_id && (
+                <div className="form-actions">
+                  <select
+                    value={carrierId}
+                    onChange={(e) => setCarrierId(e.target.value)}
+                  >
+                    <option value="">Select carrier</option>
+
+                    {carriers.map((carrier) => (
+                      <option key={carrier.id} value={carrier.id}>
+                        {carrier.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    disabled={!carrierId}
+                    onClick={() => assignCarrier(selected.id)}
+                  >
+                    Assign Carrier
+                  </button>
+                </div>
+              )}
             </section>
 
             <section className="panel">

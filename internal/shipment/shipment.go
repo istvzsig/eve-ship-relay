@@ -29,6 +29,9 @@ type Shipment struct {
 	Destination string `json:"destination"`
 	Status      Status `json:"status"`
 
+	CarrierID   string `json:"carrier_id"`
+	CarrierName string `json:"carrier_name"`
+
 	Contract       Contract        `json:"contract"`
 	AbyssalModules []AbyssalModule `json:"abyssal_modules"`
 

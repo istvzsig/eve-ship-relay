@@ -8,8 +8,15 @@ import (
 	"time"
 
 	"github.com/istvzsig/eve-ship-relay/internal/api"
+	"github.com/istvzsig/eve-ship-relay/internal/carrier"
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
 )
+
+var carriers = []carrier.Carrier{
+	{ID: "CARRIER-01", Name: "Night Hauler"},
+	{ID: "CARRIER-02", Name: "Red Freighter"},
+	{ID: "CARRIER-03", Name: "Void Runner"},
+}
 
 var shipments = []shipment.Shipment{
 	{
@@ -165,6 +172,52 @@ func main() {
 			}
 
 			shipments[i].Contract.PaymentVerified = true
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(shipments[i])
+			return
+		}
+
+		http.Error(w, "shipment not found", http.StatusNotFound)
+	})
+
+	http.HandleFunc("POST /api/shipments/{id}/assign-carrier", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "invalid shipment id", http.StatusBadRequest)
+			return
+		}
+
+		var input struct {
+			CarrierID string `json:"carrier_id"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		var carrier *carrier.Carrier
+
+		for i := range carriers {
+			if carriers[i].ID == input.CarrierID {
+				carrier = &carriers[i]
+				break
+			}
+		}
+
+		if carrier == nil {
+			http.Error(w, "carrier not found", http.StatusNotFound)
+			return
+		}
+
+		for i := range shipments {
+			if shipments[i].ID != id {
+				continue
+			}
+
+			shipments[i].CarrierID = carrier.ID
+			shipments[i].CarrierName = carrier.Name
 
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(shipments[i])
