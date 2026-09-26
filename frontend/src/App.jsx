@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const API = "http://localhost:8080";
+const API = "https://eve-ship-relay.onrender.com";
 
 const carriers = [
   { id: "CARRIER-01", name: "Night Hauler" },
