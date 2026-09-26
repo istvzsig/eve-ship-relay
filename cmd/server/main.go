@@ -11,30 +11,57 @@ import (
 
 var shipments = []shipment.Shipment{
 	{
-		ID:              1042,
-		Ship:            "Ishtar",
-		Origin:          "Jita",
-		Destination:     "Amarr",
-		Status:          shipment.StatusReady,
-		PaymentVerified: true,
+		ID:          1042,
+		Ship:        "Ishtar",
+		Origin:      "Jita",
+		Destination: "Amarr",
+		Status:      shipment.StatusReady,
+
+		Contract: shipment.Contract{
+			ID:              "CONTRACT-1042",
+			PaymentVerified: true,
+			ReceiptCode:     "SR-7F42",
+		},
+
+		AbyssalModules: []shipment.AbyssalModule{
+			{
+				Name:           "Abyssal Energized Adaptive Nano Membrane",
+				ValueISK:       850_000_000,
+				Deductible:     170_000_000,
+				DeductiblePaid: true,
+			},
+		},
+
 		AssetScanPassed: true,
 	},
 	{
-		ID:              1041,
-		Ship:            "Rifter",
-		Origin:          "Jita",
-		Destination:     "Hek",
-		Status:          shipment.StatusInTransit,
-		PaymentVerified: true,
+		ID:          1041,
+		Ship:        "Rifter",
+		Origin:      "Jita",
+		Destination: "Hek",
+		Status:      shipment.StatusInTransit,
+
+		Contract: shipment.Contract{
+			ID:              "CONTRACT-1042",
+			PaymentVerified: true,
+			ReceiptCode:     "SR-7F42",
+		},
+
 		AssetScanPassed: true,
 	},
 	{
-		ID:              1040,
-		Ship:            "Vargur",
-		Origin:          "Jita",
-		Destination:     "Dodixie",
-		Status:          shipment.StatusDelivered,
-		PaymentVerified: true,
+		ID:          1040,
+		Ship:        "Vargur",
+		Origin:      "Jita",
+		Destination: "Dodixie",
+		Status:      shipment.StatusDelivered,
+
+		Contract: shipment.Contract{
+			ID:              "CONTRACT-1040",
+			PaymentVerified: true,
+			ReceiptCode:     "SR-91BC",
+		},
+
 		AssetScanPassed: true,
 	},
 }
