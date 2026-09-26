@@ -252,3 +252,8 @@ main {
 .assets div div {
   margin: 6px 0;
 }
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

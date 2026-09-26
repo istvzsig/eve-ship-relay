@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/istvzsig/eve-ship-relay/internal/api"
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
@@ -121,6 +122,8 @@ func main() {
 	})
 
 	http.HandleFunc("/api/shipments/{id}/scan", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1500 * time.Millisecond)
+
 		id, err := strconv.Atoi(r.PathValue("id"))
 		if err != nil {
 			http.Error(w, "invalid shipment id", http.StatusBadRequest)

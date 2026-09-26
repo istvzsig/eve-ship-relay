@@ -6,6 +6,7 @@ const API = "http://localhost:8080";
 function App() {
   const [shipments, setShipments] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/api/shipments`)
@@ -20,18 +21,23 @@ function App() {
   }
 
   async function runScan(id) {
-    const res = await fetch(`${API}/api/shipments/${id}/scan`, {
-      method: "POST",
-    });
+    setScanning(true);
 
-    const shipment = await res.json();
+    try {
+      const res = await fetch(`${API}/api/shipments/${id}/scan`, {
+        method: "POST",
+      });
 
-    console.log("UPDATED SHIPMENT:", shipment);
+      const shipment = await res.json();
 
-    setSelected(shipment);
-    setShipments((current) =>
-      current.map((item) => (item.id === shipment.id ? shipment : item)),
-    );
+      setSelected(shipment);
+
+      setShipments((current) =>
+        current.map((item) => (item.id === shipment.id ? shipment : item)),
+      );
+    } finally {
+      setScanning(false);
+    }
   }
 
   if (selected) {
@@ -121,8 +127,8 @@ function App() {
             <section className="panel">
               <h3>Asset scan</h3>
 
-              <button onClick={() => runScan(selected.id)}>
-                Run Asset Scan
+              <button onClick={() => runScan(selected.id)} disabled={scanning}>
+                {scanning ? "Scanning..." : "Run Asset Scan"}
               </button>
 
               <div className="scan-result">
