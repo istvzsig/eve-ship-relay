@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import RouteMap from "./RouteMap";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 const carriers = [
@@ -293,6 +295,10 @@ function App() {
             </div>
 
             <div className="detail-grid">
+              <RouteMap
+                origin={selected.origin}
+                destination={selected.destination}
+              />
               <section className="panel">
                 <h3>Contract</h3>
 
@@ -323,7 +329,6 @@ function App() {
                   </div>
                 )}
               </section>
-
               <section className="panel">
                 <h3>Abyssal Modules</h3>
 
@@ -356,7 +361,6 @@ function App() {
                   ))
                 )}
               </section>
-
               <section className="panel">
                 <div className="panel-header">
                   <h3>Asset Scan</h3>
@@ -417,7 +421,6 @@ function App() {
                   </div>
                 </div>
               </section>
-
               <section className="panel">
                 <h3>Logistics</h3>
 
@@ -538,7 +541,6 @@ function App() {
                   </div>
                 )}
               </section>
-
               <section className="panel activity-panel">
                 <h3>Activity</h3>
 
