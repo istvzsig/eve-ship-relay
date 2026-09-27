@@ -30,7 +30,7 @@ function positionSystems(systems) {
   }));
 }
 
-export default function RouteMap({ origin, destination }) {
+export default function RouteMap({ apiURL, origin, destination }) {
   const [route, setRoute] = useState([]);
   const [selectedSystem, setSelectedSystem] = useState(null);
   const [zoom, setZoom] = useState(1);
@@ -49,7 +49,7 @@ export default function RouteMap({ origin, destination }) {
 
       try {
         const response = await fetch(
-          `/api/route?origin=${encodeURIComponent(
+          `${apiURL}/api/route?origin=${encodeURIComponent(
             origin,
           )}&destination=${encodeURIComponent(destination)}&preference=Shorter`,
         );
@@ -70,7 +70,7 @@ export default function RouteMap({ origin, destination }) {
     }
 
     loadRoute();
-  }, [origin, destination]);
+  }, [apiURL, origin, destination]);
 
   const routeText = useMemo(
     () => route.map((system) => system.name).join(" → "),

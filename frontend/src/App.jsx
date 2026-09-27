@@ -296,6 +296,7 @@ function App() {
 
             <div className="detail-grid">
               <RouteMap
+                apiURL={API}
                 origin={selected.origin}
                 destination={selected.destination}
               />
