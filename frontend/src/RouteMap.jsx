@@ -1,6 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import "./RouteMap.css";
 
+function positionSystems(systems) {
+  if (systems.length === 0) {
+    return [];
+  }
+
+  const xs = systems.map((system) => system.position.x);
+  const zs = systems.map((system) => system.position.z);
+
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minZ = Math.min(...zs);
+  const maxZ = Math.max(...zs);
+
+  const rangeX = maxX - minX || 1;
+  const rangeZ = maxZ - minZ || 1;
+
+  return systems.map((system, index) => ({
+    ...system,
+    x: 8 + ((system.position.x - minX) / rangeX) * 84,
+    y: 8 + ((maxZ - system.position.z) / rangeZ) * 84,
+    type:
+      index === 0
+        ? "origin"
+        : index === systems.length - 1
+          ? "destination"
+          : "",
+  }));
+}
+
 export default function RouteMap({ origin, destination }) {
   const [route, setRoute] = useState([]);
   const [selectedSystem, setSelectedSystem] = useState(null);
@@ -23,11 +52,6 @@ export default function RouteMap({ origin, destination }) {
           `/api/route?origin=${encodeURIComponent(
             origin,
           )}&destination=${encodeURIComponent(destination)}&preference=Shorter`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
         );
 
         if (!response.ok) {
@@ -36,27 +60,7 @@ export default function RouteMap({ origin, destination }) {
 
         const data = await response.json();
 
-        const systems = data.systems.map((system, index) => ({
-          ...system,
-
-          // Temporary visual layout.
-          // We'll replace this with real EVE map coordinates later.
-          x:
-            data.systems.length === 1
-              ? 50
-              : 8 + (index / (data.systems.length - 1)) * 80,
-
-          y: 50 + (index % 2 === 0 ? -8 : 8),
-
-          type:
-            index === 0
-              ? "origin"
-              : index === data.systems.length - 1
-                ? "destination"
-                : "",
-        }));
-
-        setRoute(systems);
+        setRoute(positionSystems(data.systems));
       } catch (err) {
         setError(err.message);
         setRoute([]);
@@ -169,7 +173,7 @@ export default function RouteMap({ origin, destination }) {
 
               return (
                 <line
-                  key={`${system.name}-${next.name}`}
+                  key={`${system.id}-${next.id}`}
                   x1={system.x}
                   y1={system.y}
                   x2={next.x}
@@ -193,7 +197,13 @@ export default function RouteMap({ origin, destination }) {
               title={system.name}
             >
               <span className="system-dot" />
+
               <span className="system-label">{system.name}</span>
+
+              <span className="system-security">
+                {system.security_status.toFixed(1)}
+              </span>
+
               <span className="system-index">{index + 1}</span>
             </button>
           ))}
@@ -254,6 +264,7 @@ export default function RouteMap({ origin, destination }) {
 
             <div>
               <strong>{system.name}</strong>
+              <span>{system.security_status.toFixed(1)} security</span>
             </div>
 
             {index === 0 && <em>ORIGIN</em>}

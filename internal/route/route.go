@@ -11,8 +11,16 @@ import (
 const esiBaseURL = "https://esi.evetech.net"
 
 type System struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID             int64    `json:"id"`
+	Name           string   `json:"name"`
+	SecurityStatus float64  `json:"security_status"`
+	Position       Position `json:"position"`
+}
+
+type Position struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	Z float64 `json:"z"`
 }
 
 type Route struct {
@@ -97,7 +105,9 @@ func (c *ESIClient) GetSystem(ctx context.Context, id int64) (System, error) {
 	}
 
 	var result struct {
-		Name string `json:"name"`
+		Name           string   `json:"name"`
+		SecurityStatus float64  `json:"security_status"`
+		Position       Position `json:"position"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -105,8 +115,10 @@ func (c *ESIClient) GetSystem(ctx context.Context, id int64) (System, error) {
 	}
 
 	return System{
-		ID:   id,
-		Name: result.Name,
+		ID:             id,
+		Name:           result.Name,
+		SecurityStatus: result.SecurityStatus,
+		Position:       result.Position,
 	}, nil
 }
 
