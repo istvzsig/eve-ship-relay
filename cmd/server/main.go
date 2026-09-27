@@ -10,6 +10,7 @@ import (
 
 	"github.com/istvzsig/eve-ship-relay/internal/api"
 	"github.com/istvzsig/eve-ship-relay/internal/carrier"
+	"github.com/istvzsig/eve-ship-relay/internal/route"
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
 )
 
@@ -183,6 +184,8 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	esiClient := route.NewESIClient()
 
 	handler := api.CORS(http.DefaultServeMux)
 
@@ -539,6 +542,58 @@ func main() {
 		}
 
 		http.Error(w, "shipment not found", http.StatusNotFound)
+	})
+
+	http.HandleFunc("GET /api/route", func(w http.ResponseWriter, r *http.Request) {
+		origin := r.URL.Query().Get("origin")
+		destination := r.URL.Query().Get("destination")
+		preference := r.URL.Query().Get("preference")
+
+		if origin == "" || destination == "" {
+			http.Error(
+				w,
+				"origin and destination are required",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		if preference == "" {
+			preference = "Shorter"
+		}
+
+		switch preference {
+		case "Shorter", "Safer", "LessSecure":
+		default:
+			http.Error(
+				w,
+				"invalid route preference",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		ctx := r.Context()
+
+		result, err := esiClient.CalculateRouteByName(
+			ctx,
+			origin,
+			destination,
+			preference,
+		)
+		if err != nil {
+			log.Printf("route calculation failed: %v", err)
+
+			http.Error(
+				w,
+				"route calculation failed",
+				http.StatusBadGateway,
+			)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
 	})
 
 	log.Println("ShipRelay listening on :8080")

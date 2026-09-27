@@ -1,17 +1,72 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./RouteMap.css";
 
-const demoSystems = [
-  { name: "Jita", security: 0.9, x: 8, y: 48, type: "origin" },
-  { name: "Perimeter", security: 0.9, x: 25, y: 36 },
-  { name: "Sivala", security: 0.9, x: 43, y: 45 },
-  { name: "Niyabainen", security: 0.9, x: 62, y: 32 },
-  { name: "Amarr", security: 1.0, x: 88, y: 48, type: "destination" },
-];
-
-export default function RouteMap({ origin, destination, route = demoSystems }) {
+export default function RouteMap({ origin, destination }) {
+  const [route, setRoute] = useState([]);
   const [selectedSystem, setSelectedSystem] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function loadRoute() {
+      if (!origin || !destination) {
+        setRoute([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(
+          `/api/route?origin=${encodeURIComponent(
+            origin,
+          )}&destination=${encodeURIComponent(destination)}&preference=Shorter`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Route request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const systems = data.systems.map((system, index) => ({
+          ...system,
+
+          // Temporary visual layout.
+          // We'll replace this with real EVE map coordinates later.
+          x:
+            data.systems.length === 1
+              ? 50
+              : 8 + (index / (data.systems.length - 1)) * 80,
+
+          y: 50 + (index % 2 === 0 ? -8 : 8),
+
+          type:
+            index === 0
+              ? "origin"
+              : index === data.systems.length - 1
+                ? "destination"
+                : "",
+        }));
+
+        setRoute(systems);
+      } catch (err) {
+        setError(err.message);
+        setRoute([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRoute();
+  }, [origin, destination]);
 
   const routeText = useMemo(
     () => route.map((system) => system.name).join(" → "),
@@ -38,6 +93,50 @@ export default function RouteMap({ origin, destination, route = demoSystems }) {
     ].join("\n");
 
     await navigator.clipboard.writeText(text);
+  }
+
+  if (loading) {
+    return (
+      <section className="route-panel">
+        <div className="route-panel-header">
+          <div>
+            <span className="shipment-id">NAVIGATION</span>
+            <h3>
+              {origin} → {destination}
+            </h3>
+          </div>
+        </div>
+
+        <div className="route-map-shell">
+          <div className="system-inspector">
+            <span>ROUTE</span>
+            <strong>Loading ESI route...</strong>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="route-panel">
+        <div className="route-panel-header">
+          <div>
+            <span className="shipment-id">NAVIGATION</span>
+            <h3>
+              {origin} → {destination}
+            </h3>
+          </div>
+        </div>
+
+        <div className="route-map-shell">
+          <div className="system-inspector">
+            <span>ROUTE ERROR</span>
+            <strong>{error}</strong>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -82,7 +181,7 @@ export default function RouteMap({ origin, destination, route = demoSystems }) {
 
           {route.map((system, index) => (
             <button
-              key={system.name}
+              key={system.id}
               className={`system-node ${
                 system.type || ""
               } ${selectedSystem === system.name ? "selected" : ""}`}
@@ -95,9 +194,6 @@ export default function RouteMap({ origin, destination, route = demoSystems }) {
             >
               <span className="system-dot" />
               <span className="system-label">{system.name}</span>
-              <span className="system-security">
-                {system.security.toFixed(1)}
-              </span>
               <span className="system-index">{index + 1}</span>
             </button>
           ))}
@@ -153,12 +249,11 @@ export default function RouteMap({ origin, destination, route = demoSystems }) {
         </div>
 
         {route.map((system, index) => (
-          <div className="waypoint" key={system.name}>
+          <div className="waypoint" key={system.id}>
             <span className="waypoint-number">{index + 1}</span>
 
             <div>
               <strong>{system.name}</strong>
-              <span>{system.security.toFixed(1)} security</span>
             </div>
 
             {index === 0 && <em>ORIGIN</em>}
