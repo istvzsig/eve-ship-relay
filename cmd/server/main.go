@@ -480,6 +480,58 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
+	http.HandleFunc("GET /api/route", func(w http.ResponseWriter, r *http.Request) {
+		origin := r.URL.Query().Get("origin")
+		destination := r.URL.Query().Get("destination")
+		preference := r.URL.Query().Get("preference")
+
+		if origin == "" || destination == "" {
+			http.Error(
+				w,
+				"origin and destination are required",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		if preference == "" {
+			preference = "Shorter"
+		}
+
+		switch preference {
+		case "Shorter", "Safer", "LessSecure":
+		default:
+			http.Error(
+				w,
+				"invalid route preference",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		ctx := r.Context()
+
+		result, err := esiClient.CalculateRouteByName(
+			ctx,
+			origin,
+			destination,
+			preference,
+		)
+		if err != nil {
+			log.Printf("route calculation failed: %v", err)
+
+			http.Error(
+				w,
+				"route calculation failed",
+				http.StatusBadGateway,
+			)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+	})
+
 	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
@@ -544,57 +596,9 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
-	http.HandleFunc("GET /api/route", func(w http.ResponseWriter, r *http.Request) {
-		origin := r.URL.Query().Get("origin")
-		destination := r.URL.Query().Get("destination")
-		preference := r.URL.Query().Get("preference")
+	http.HandleFunc("/api/ships", route.ShipSearchHandler)
 
-		if origin == "" || destination == "" {
-			http.Error(
-				w,
-				"origin and destination are required",
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		if preference == "" {
-			preference = "Shorter"
-		}
-
-		switch preference {
-		case "Shorter", "Safer", "LessSecure":
-		default:
-			http.Error(
-				w,
-				"invalid route preference",
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		ctx := r.Context()
-
-		result, err := esiClient.CalculateRouteByName(
-			ctx,
-			origin,
-			destination,
-			preference,
-		)
-		if err != nil {
-			log.Printf("route calculation failed: %v", err)
-
-			http.Error(
-				w,
-				"route calculation failed",
-				http.StatusBadGateway,
-			)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
-	})
+	http.HandleFunc("/api/systems", route.SystemSearchHandler)
 
 	log.Println("ShipRelay listening on :8080")
 	log.Fatal(http.ListenAndServe(":"+port, handler))

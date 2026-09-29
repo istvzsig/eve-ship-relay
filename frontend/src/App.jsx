@@ -34,6 +34,10 @@ function App() {
   const [dispatching, setDispatching] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [shipSuggestions, setShipSuggestions] = useState([]);
+  const [systemSuggestions, setSystemSuggestions] = useState({
+    origin: [],
+    destination: [],
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +107,40 @@ function App() {
     } catch (error) {
       console.error("Failed to search ships:", error);
       setShipSuggestions([]);
+    }
+  }
+
+  async function searchSystems(field, query) {
+    if (!query.trim()) {
+      setSystemSuggestions((current) => ({
+        ...current,
+        [field]: [],
+      }));
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API}/api/systems?q=${encodeURIComponent(query)}`,
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to search systems");
+      }
+
+      const systems = await res.json();
+
+      setSystemSuggestions((current) => ({
+        ...current,
+        [field]: systems,
+      }));
+    } catch (error) {
+      console.error("Failed to search systems:", error);
+
+      setSystemSuggestions((current) => ({
+        ...current,
+        [field]: [],
+      }));
     }
   }
 
@@ -663,28 +701,72 @@ function App() {
                       )}
                     </label>
 
-                    <label>
+                    <label className="autocomplete-field">
                       Origin
                       <input
                         value={newShipment.origin}
-                        onChange={(event) =>
-                          updateNewShipment("origin", event.target.value)
-                        }
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          updateNewShipment("origin", value);
+                          searchSystems("origin", value);
+                        }}
                         placeholder="e.g. Jita"
                         required
                       />
+                      {systemSuggestions.origin.length > 0 && (
+                        <div className="autocomplete-list">
+                          {systemSuggestions.origin.map((system) => (
+                            <button
+                              type="button"
+                              key={system.id}
+                              className="autocomplete-option"
+                              onClick={() => {
+                                updateNewShipment("origin", system.name);
+                                setSystemSuggestions((current) => ({
+                                  ...current,
+                                  origin: [],
+                                }));
+                              }}
+                            >
+                              {system.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </label>
 
-                    <label>
+                    <label className="autocomplete-field">
                       Destination
                       <input
                         value={newShipment.destination}
-                        onChange={(event) =>
-                          updateNewShipment("destination", event.target.value)
-                        }
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          updateNewShipment("destination", value);
+                          searchSystems("destination", value);
+                        }}
                         placeholder="e.g. Amarr"
                         required
                       />
+                      {systemSuggestions.destination.length > 0 && (
+                        <div className="autocomplete-list">
+                          {systemSuggestions.destination.map((system) => (
+                            <button
+                              type="button"
+                              key={system.id}
+                              className="autocomplete-option"
+                              onClick={() => {
+                                updateNewShipment("destination", system.name);
+                                setSystemSuggestions((current) => ({
+                                  ...current,
+                                  destination: [],
+                                }));
+                              }}
+                            >
+                              {system.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </label>
 
                     <label>
