@@ -33,6 +33,7 @@ function App() {
   });
   const [dispatching, setDispatching] = useState(false);
   const [delivering, setDelivering] = useState(false);
+  const [shipSuggestions, setShipSuggestions] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +80,29 @@ function App() {
       );
     } finally {
       setScanning(false);
+    }
+  }
+
+  async function searchShips(query) {
+    if (!query.trim()) {
+      setShipSuggestions([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API}/api/ships?q=${encodeURIComponent(query)}`,
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to search ships");
+      }
+
+      const ships = await res.json();
+      setShipSuggestions(ships);
+    } catch (error) {
+      console.error("Failed to search ships:", error);
+      setShipSuggestions([]);
     }
   }
 
@@ -608,16 +632,35 @@ function App() {
 
                 <form onSubmit={createShipment}>
                   <div className="form-grid">
-                    <label>
+                    <label className="autocomplete-field">
                       Ship
                       <input
                         value={newShipment.ship}
-                        onChange={(event) =>
-                          updateNewShipment("ship", event.target.value)
-                        }
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          updateNewShipment("ship", value);
+                          searchShips(value);
+                        }}
                         placeholder="e.g. Ishtar"
                         required
                       />
+                      {shipSuggestions.length > 0 && (
+                        <div className="autocomplete-list">
+                          {shipSuggestions.map((ship) => (
+                            <button
+                              type="button"
+                              key={ship.id}
+                              className="autocomplete-option"
+                              onClick={() => {
+                                updateNewShipment("ship", ship.name);
+                                setShipSuggestions([]);
+                              }}
+                            >
+                              {ship.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </label>
 
                     <label>
