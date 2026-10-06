@@ -27,6 +27,29 @@ type Route struct {
 	Origin      string   `json:"origin"`
 	Destination string   `json:"destination"`
 	Systems     []System `json:"systems"`
+
+	DistanceJumps int
+
+	HighSecJumps int
+	LowSecJumps  int
+	NullSecJumps int
+}
+
+func (r Route) Valid() bool {
+	if r.DistanceJumps < 0 {
+		return false
+	}
+
+	if r.HighSecJumps < 0 ||
+		r.LowSecJumps < 0 ||
+		r.NullSecJumps < 0 {
+		return false
+	}
+
+	return r.DistanceJumps ==
+		r.HighSecJumps+
+			r.LowSecJumps+
+			r.NullSecJumps
 }
 
 type ESIClient struct {

@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const shipCatalogFile = "data/ships.json"
+
 type Ship struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
@@ -18,8 +20,6 @@ type Ship struct {
 type ShipCatalog struct {
 	Ships []Ship `json:"ships"`
 }
-
-const shipCatalogFile = "data/ships.json"
 
 func LoadShips() ([]Ship, error) {
 	data, err := os.ReadFile(shipCatalogFile)
@@ -102,6 +102,8 @@ func ShipSearchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 
 	limit := 10
+
+	fmt.Println("query", query)
 
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 50 {

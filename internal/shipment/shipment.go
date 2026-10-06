@@ -1,6 +1,10 @@
 package shipment
 
-import "time"
+import (
+	"time"
+
+	"github.com/istvzsig/eve-ship-relay/internal/ship"
+)
 
 type Status string
 
@@ -31,6 +35,11 @@ type Shipment struct {
 	Destination string `json:"destination"`
 	Status      Status `json:"status"`
 
+	VolumeM3      float64
+	CollateralISK float64
+
+	ShipClass ship.ShipClass
+
 	CarrierID   string `json:"carrier_id"`
 	CarrierName string `json:"carrier_name"`
 
@@ -55,4 +64,25 @@ type Activity struct {
 	Timestamp time.Time `json:"timestamp"`
 	Action    string    `json:"action"`
 	Details   string    `json:"details,omitempty"`
+}
+
+func (s Shipment) Valid() bool {
+	if s.VolumeM3 <= 0 {
+		return false
+	}
+
+	if s.CollateralISK < 0 {
+		return false
+	}
+
+	if s.Origin == "" || s.Destination == "" {
+		return false
+	}
+
+	switch s.ShipClass {
+	case ship.BlockadeRunner, ship.DST, ship.Freighter, ship.JumpFreighter:
+		return true
+	default:
+		return false
+	}
 }

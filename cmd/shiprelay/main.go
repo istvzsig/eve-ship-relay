@@ -480,6 +480,10 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
+	http.HandleFunc("GET /api/ships", route.ShipSearchHandler)
+
+	http.HandleFunc("GET /api/systems", route.SystemSearchHandler)
+
 	http.HandleFunc("GET /api/route", func(w http.ResponseWriter, r *http.Request) {
 		origin := r.URL.Query().Get("origin")
 		destination := r.URL.Query().Get("destination")
@@ -595,10 +599,6 @@ func main() {
 
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
-
-	http.HandleFunc("/api/ships", route.ShipSearchHandler)
-
-	http.HandleFunc("/api/systems", route.SystemSearchHandler)
 
 	log.Println("ShipRelay listening on :8080")
 	log.Fatal(http.ListenAndServe(":"+port, handler))
