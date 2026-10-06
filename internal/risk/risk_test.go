@@ -132,9 +132,9 @@ func TestRiskAssessment_Valid(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "route risk above maximum",
+			name: "negative route risk",
 			risk: RiskAssessment{
-				RouteRisk: 1.1,
+				RouteRisk: -0.1,
 			},
 			want: false,
 		},
