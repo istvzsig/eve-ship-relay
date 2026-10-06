@@ -1007,7 +1007,7 @@ function App() {
                       </div>
                     )}
 
-                    <label>
+                    {/* <label>
                       Contract ID
                       <input
                         value={newShipment.contract_id}
@@ -1017,9 +1017,9 @@ function App() {
                         placeholder="CONTRACT-XXXX"
                         required
                       />
-                    </label>
+                    </label> */}
 
-                    <label>
+                    {/* <label>
                       Receipt Code
                       <input
                         value={newShipment.receipt_code}
@@ -1029,7 +1029,7 @@ function App() {
                         placeholder="SR-XXXX"
                         required
                       />
-                    </label>
+                    </label> */}
                   </div>
 
                   <div className="form-actions">
