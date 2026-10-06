@@ -10,6 +10,18 @@ import (
 
 const esiBaseURL = "https://esi.evetech.net"
 
+type Route struct {
+	Origin      string   `json:"origin"`
+	Destination string   `json:"destination"`
+	Systems     []System `json:"systems"`
+
+	DistanceJumps int `json:"distance_jumps"`
+
+	HighSecJumps int `json:"high_sec_jumps"`
+	LowSecJumps  int `json:"low_sec_jumps"`
+	NullSecJumps int `json:"null_sec_jumps"`
+}
+
 type System struct {
 	ID             int64    `json:"id"`
 	Name           string   `json:"name"`
@@ -21,18 +33,6 @@ type Position struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 	Z float64 `json:"z"`
-}
-
-type Route struct {
-	Origin      string   `json:"origin"`
-	Destination string   `json:"destination"`
-	Systems     []System `json:"systems"`
-
-	DistanceJumps int
-
-	HighSecJumps int
-	LowSecJumps  int
-	NullSecJumps int
 }
 
 func (r Route) Valid() bool {
@@ -52,12 +52,45 @@ func (r Route) Valid() bool {
 			r.NullSecJumps
 }
 
+func BuildRoute(
+	originName string,
+	destinationName string,
+	systems []System,
+) Route {
+	r := Route{
+		Origin:      originName,
+		Destination: destinationName,
+		Systems:     systems,
+	}
+
+	if len(systems) <= 1 {
+		return r
+	}
+
+	r.DistanceJumps = len(systems) - 1
+
+	for _, system := range systems[1:] {
+		switch {
+		case system.SecurityStatus >= 0.5:
+			r.HighSecJumps++
+		case system.SecurityStatus > 0:
+			r.LowSecJumps++
+		default:
+			r.NullSecJumps++
+		}
+	}
+
+	return r
+}
+
 type ESIClient struct {
+	baseURL    string
 	httpClient *http.Client
 }
 
 func NewESIClient() *ESIClient {
 	return &ESIClient{
+		baseURL:    esiBaseURL,
 		httpClient: &http.Client{},
 	}
 }
@@ -66,7 +99,7 @@ func (c *ESIClient) SearchSystem(ctx context.Context, name string) (int64, error
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		esiBaseURL+"/universe/ids/",
+		c.baseURL+"/universe/ids/",
 		strings.NewReader(fmt.Sprintf(`["%s"]`, name)),
 	)
 	if err != nil {
@@ -108,9 +141,14 @@ func (c *ESIClient) SearchSystem(ctx context.Context, name string) (int64, error
 }
 
 func (c *ESIClient) GetSystem(ctx context.Context, id int64) (System, error) {
-	endpoint := fmt.Sprintf("%s/latest/universe/systems/%d/", esiBaseURL, id)
+	endpoint := fmt.Sprintf("%s/latest/universe/systems/%d/", c.baseURL, id)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodGet,
+		endpoint,
+		nil,
+	)
 	if err != nil {
 		return System{}, err
 	}
@@ -124,7 +162,10 @@ func (c *ESIClient) GetSystem(ctx context.Context, id int64) (System, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return System{}, fmt.Errorf("ESI system lookup returned %s", resp.Status)
+		return System{}, fmt.Errorf(
+			"ESI system lookup returned %s",
+			resp.Status,
+		)
 	}
 
 	var result struct {
@@ -153,7 +194,7 @@ func (c *ESIClient) CalculateRoute(
 ) ([]int64, error) {
 	endpoint := fmt.Sprintf(
 		"%s/route/%d/%d/",
-		esiBaseURL,
+		c.baseURL,
 		originID,
 		destinationID,
 	)
@@ -213,7 +254,12 @@ func (c *ESIClient) CalculateRouteByName(
 		return Route{}, err
 	}
 
-	ids, err := c.CalculateRoute(ctx, origin, destination, preference)
+	ids, err := c.CalculateRoute(
+		ctx,
+		origin,
+		destination,
+		preference,
+	)
 	if err != nil {
 		return Route{}, err
 	}
@@ -229,9 +275,15 @@ func (c *ESIClient) CalculateRouteByName(
 		systems = append(systems, system)
 	}
 
-	return Route{
-		Origin:      originName,
-		Destination: destinationName,
-		Systems:     systems,
-	}, nil
+	result := BuildRoute(
+		originName,
+		destinationName,
+		systems,
+	)
+
+	if !result.Valid() {
+		return Route{}, fmt.Errorf("invalid calculated route")
+	}
+
+	return result, nil
 }

@@ -10,7 +10,9 @@ import (
 
 	"github.com/istvzsig/eve-ship-relay/internal/api"
 	"github.com/istvzsig/eve-ship-relay/internal/carrier"
+	"github.com/istvzsig/eve-ship-relay/internal/pricing"
 	"github.com/istvzsig/eve-ship-relay/internal/route"
+	"github.com/istvzsig/eve-ship-relay/internal/ship"
 	"github.com/istvzsig/eve-ship-relay/internal/shipment"
 )
 
@@ -186,6 +188,8 @@ func main() {
 	}
 
 	esiClient := route.NewESIClient()
+
+	calculator := pricing.NewCalculator(pricing.DefaultCoefficients())
 
 	handler := api.CORS(http.DefaultServeMux)
 
@@ -536,12 +540,125 @@ func main() {
 		json.NewEncoder(w).Encode(result)
 	})
 
-	http.HandleFunc("/api/shipments", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /api/pricing", func(w http.ResponseWriter, r *http.Request) {
+		origin := r.URL.Query().Get("origin")
+		destination := r.URL.Query().Get("destination")
+		shipClass := ship.ShipClass(r.URL.Query().Get("ship_class"))
+		volumeStr := r.URL.Query().Get("volume_m3")
+		collateralStr := r.URL.Query().Get("collateral_isk")
+
+		if origin == "" || destination == "" || shipClass == "" ||
+			volumeStr == "" || collateralStr == "" {
+			http.Error(
+				w,
+				"origin, destination, ship_class, volume_m3 and collateral_isk are required",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		volumeM3, err := strconv.ParseFloat(volumeStr, 64)
+		if err != nil {
+			http.Error(w, "invalid volume_m3", http.StatusBadRequest)
+			return
+		}
+		if volumeM3 <= 0 {
+			http.Error(w, "volume_m3 must be greater than 0", http.StatusBadRequest)
+			return
+		}
+
+		if volumeM3 > 1000000 {
+			http.Error(
+				w,
+				"volume m3 must not exceed 1000000",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		collateralISK, err := strconv.ParseFloat(collateralStr, 64)
+		if err != nil {
+			http.Error(w, "invalid collateral_isk", http.StatusBadRequest)
+			return
+		}
+		if collateralISK < 0 {
+			http.Error(w, "collateral_isk must be greater than or equal to 0", http.StatusBadRequest)
+			return
+		}
+
+		switch shipClass {
+		case ship.BlockadeRunner,
+			ship.DST,
+			ship.Freighter,
+			ship.JumpFreighter:
+			// valid
+		default:
+			http.Error(w, "invalid ship_class", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		calculatedRoute, err := esiClient.CalculateRouteByName(
+			ctx,
+			origin,
+			destination,
+			"Shorter",
+		)
+		if err != nil {
+			log.Printf("pricing route calculation failed: %v", err)
+
+			http.Error(
+				w,
+				"route calculation failed",
+				http.StatusBadGateway,
+			)
+			return
+		}
+
+		s := shipment.Shipment{
+			Origin:        origin,
+			Destination:   destination,
+			VolumeM3:      volumeM3,
+			CollateralISK: collateralISK,
+			ShipClass:     shipClass,
+			Route:         calculatedRoute,
+		}
+
+		breakdown, err := calculator.Calculate(s)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		response := struct {
+			Origin        string            `json:"origin"`
+			Destination   string            `json:"destination"`
+			ShipClass     ship.ShipClass    `json:"ship_class"`
+			VolumeM3      float64           `json:"volume_m3"`
+			CollateralISK float64           `json:"collateral_isk"`
+			Route         route.Route       `json:"route"`
+			Breakdown     pricing.Breakdown `json:"breakdown"`
+		}{
+			Origin:        origin,
+			Destination:   destination,
+			ShipClass:     shipClass,
+			VolumeM3:      volumeM3,
+			CollateralISK: collateralISK,
+			Route:         calculatedRoute,
+			Breakdown:     breakdown,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	})
+
+	http.HandleFunc("GET /api/shipments", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(shipments)
 	})
 
-	http.HandleFunc("/api/shipments/{id}", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /api/shipments/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
 		for _, s := range shipments {
@@ -555,7 +672,7 @@ func main() {
 		http.Error(w, "shipment not found", http.StatusNotFound)
 	})
 
-	http.HandleFunc("/api/shipments/{id}/scan", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /api/shipments/{id}/scan", func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(1500 * time.Millisecond)
 
 		id, err := strconv.Atoi(r.PathValue("id"))

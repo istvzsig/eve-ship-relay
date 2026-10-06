@@ -30,16 +30,6 @@ func TestDefaultCoefficients(t *testing.T) {
 			want: 0.08,
 		},
 		{
-			name: "route risk rate",
-			got:  coefficients.RouteRiskRate,
-			want: 0.20,
-		},
-		{
-			name: "gank risk rate",
-			got:  coefficients.GankRiskRate,
-			want: 0.20,
-		},
-		{
 			name: "collateral risk rate",
 			got:  coefficients.CollateralRiskRate,
 			want: 0.005,

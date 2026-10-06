@@ -14,8 +14,6 @@ type Coefficients struct {
 	NullSecRiskPerJump float64
 
 	// Converts risk exposure into ISK.
-	RouteRiskRate      float64
-	GankRiskRate       float64
 	CollateralRiskRate float64
 
 	// Ship-specific prototype gank exposure.
@@ -41,8 +39,6 @@ func DefaultCoefficients() Coefficients {
 		LowSecRiskPerJump:  0.04,
 		NullSecRiskPerJump: 0.08,
 
-		RouteRiskRate:      0.20,
-		GankRiskRate:       0.20,
 		CollateralRiskRate: 0.005,
 
 		GankRiskByShip: map[ship.ShipClass]float64{

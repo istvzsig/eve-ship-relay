@@ -3,6 +3,7 @@ package shipment
 import (
 	"time"
 
+	"github.com/istvzsig/eve-ship-relay/internal/route"
 	"github.com/istvzsig/eve-ship-relay/internal/ship"
 )
 
@@ -15,30 +16,18 @@ const (
 	StatusBlocked   Status = "BLOCKED"
 )
 
-type Contract struct {
-	ID              string `json:"id"`
-	PaymentVerified bool   `json:"payment_verified"`
-	ReceiptCode     string `json:"receipt_code"`
-}
-
-type AbyssalModule struct {
-	Name           string `json:"name"`
-	ValueISK       int64  `json:"value_isk"`
-	Deductible     int64  `json:"deductible_isk"`
-	DeductiblePaid bool   `json:"deductible_paid"`
-}
-
 type Shipment struct {
-	ID          int    `json:"id"`
-	Ship        string `json:"ship"`
-	Origin      string `json:"origin"`
-	Destination string `json:"destination"`
-	Status      Status `json:"status"`
+	ID          int         `json:"id"`
+	Ship        string      `json:"ship"`
+	Origin      string      `json:"origin"`
+	Destination string      `json:"destination"`
+	Status      Status      `json:"status"`
+	Route       route.Route `json:"route"`
 
-	VolumeM3      float64
-	CollateralISK float64
+	VolumeM3      float64 `json:"volume_m3"`
+	CollateralISK float64 `json:"collateral_isk"`
 
-	ShipClass ship.ShipClass
+	ShipClass ship.ShipClass `json:"ship_class"`
 
 	CarrierID   string `json:"carrier_id"`
 	CarrierName string `json:"carrier_name"`
@@ -52,6 +41,19 @@ type Shipment struct {
 	CynoPilotName string `json:"cyno_pilot_name"`
 
 	Activities []Activity `json:"activities"`
+}
+
+type Contract struct {
+	ID              string `json:"id"`
+	PaymentVerified bool   `json:"payment_verified"`
+	ReceiptCode     string `json:"receipt_code"`
+}
+
+type AbyssalModule struct {
+	Name           string `json:"name"`
+	ValueISK       int64  `json:"value_isk"`
+	Deductible     int64  `json:"deductible_isk"`
+	DeductiblePaid bool   `json:"deductible_paid"`
 }
 
 type AssetScan struct {
@@ -79,9 +81,17 @@ func (s Shipment) Valid() bool {
 		return false
 	}
 
+	if !s.Route.Valid() {
+		return false
+	}
+
 	switch s.ShipClass {
-	case ship.BlockadeRunner, ship.DST, ship.Freighter, ship.JumpFreighter:
+	case ship.BlockadeRunner,
+		ship.DST,
+		ship.Freighter,
+		ship.JumpFreighter:
 		return true
+
 	default:
 		return false
 	}

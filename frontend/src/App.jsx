@@ -17,6 +17,13 @@ const cynoPilots = [
   { id: "CYNO-03", name: "Black Lantern" },
 ];
 
+const shipVolumeLimits = {
+  blockade_runner: 10000,
+  dst: 60000,
+  freighter: 100000,
+  jump_freighter: 1000000,
+};
+
 function App() {
   const [shipments, setShipments] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -24,13 +31,18 @@ function App() {
   const [showNewShipment, setShowNewShipment] = useState(false);
   const [carrierId, setCarrierId] = useState("");
   const [cynoPilotId, setCynoPilotId] = useState("");
+
   const [newShipment, setNewShipment] = useState({
     ship: "",
     origin: "",
     destination: "",
+    ship_class: "",
+    volume_m3: "",
+    collateral_isk: "",
     contract_id: "",
     receipt_code: "",
   });
+
   const [dispatching, setDispatching] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [shipSuggestions, setShipSuggestions] = useState([]);
@@ -38,6 +50,10 @@ function App() {
     origin: [],
     destination: [],
   });
+
+  const [pricing, setPricing] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingError, setPricingError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -144,6 +160,46 @@ function App() {
     }
   }
 
+  async function calculatePricing({
+    origin,
+    destination,
+    shipClass,
+    volumeM3,
+    collateralISK,
+  }) {
+    setPricingLoading(true);
+    setPricingError("");
+
+    try {
+      const params = new URLSearchParams({
+        origin,
+        destination,
+        ship_class: shipClass,
+        volume_m3: String(volumeM3),
+        collateral_isk: String(collateralISK),
+      });
+
+      const res = await fetch(`${API}/api/pricing?${params}`);
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Failed to calculate pricing");
+      }
+
+      const result = await res.json();
+      setPricing(result);
+
+      return result;
+    } catch (error) {
+      console.error("Failed to calculate pricing:", error);
+      setPricing(null);
+      setPricingError(error.message);
+      return null;
+    } finally {
+      setPricingLoading(false);
+    }
+  }
+
   async function createShipment(event) {
     event.preventDefault();
 
@@ -152,7 +208,11 @@ function App() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(newShipment),
+      body: JSON.stringify({
+        ...newShipment,
+        volume_m3: Number(newShipment.volume_m3),
+        collateral_isk: Number(newShipment.collateral_isk),
+      }),
     });
 
     const shipment = await res.json();
@@ -165,9 +225,15 @@ function App() {
       ship: "",
       origin: "",
       destination: "",
+      ship_class: "",
+      volume_m3: "",
+      collateral_isk: "",
       contract_id: "",
       receipt_code: "",
     });
+
+    setPricing(null);
+    setPricingError("");
   }
 
   async function verifyPayment(id) {
@@ -768,6 +834,178 @@ function App() {
                         </div>
                       )}
                     </label>
+
+                    <div className="form-row">
+                      <label>
+                        Ship Class
+                        <select
+                          value={newShipment.ship_class || ""}
+                          onChange={(e) =>
+                            setNewShipment({
+                              ...newShipment,
+                              ship_class: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Select ship class</option>
+                          <option value="blockade_runner">
+                            Blockade Runner
+                          </option>
+                          <option value="dst">DST</option>
+                          <option value="freighter">Freighter</option>
+                          <option value="jump_freighter">Jump Freighter</option>
+                        </select>
+                      </label>
+
+                      <label>
+                        Volume (m³)
+                        <input
+                          type="number"
+                          min="1"
+                          max={
+                            shipVolumeLimits[newShipment.ship_class] ||
+                            undefined
+                          }
+                          placeholder={
+                            newShipment.ship_class
+                              ? `Max: ${shipVolumeLimits[newShipment.ship_class].toLocaleString()} m³`
+                              : "Select ship class first"
+                          }
+                          value={newShipment.volume_m3 || ""}
+                          onChange={(e) =>
+                            setNewShipment({
+                              ...newShipment,
+                              volume_m3: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Collateral (ISK)
+                        <input
+                          type="number"
+                          min="0"
+                          value={newShipment.collateral_isk || ""}
+                          onChange={(e) =>
+                            setNewShipment({
+                              ...newShipment,
+                              collateral_isk: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        calculatePricing({
+                          origin: newShipment.origin,
+                          destination: newShipment.destination,
+                          shipClass: newShipment.ship_class,
+                          volumeM3: newShipment.volume_m3,
+                          collateralISK: newShipment.collateral_isk,
+                        })
+                      }
+                      disabled={
+                        pricingLoading ||
+                        !newShipment.origin ||
+                        !newShipment.destination ||
+                        !newShipment.ship_class ||
+                        !newShipment.volume_m3 ||
+                        newShipment.collateral_isk === ""
+                      }
+                    >
+                      {pricingLoading ? "Calculating..." : "Calculate Price"}
+                    </button>
+
+                    {pricingError && (
+                      <div className="error">{pricingError}</div>
+                    )}
+
+                    {pricing && (
+                      <div className="pricing-panel">
+                        <h3>Logistics Quote</h3>
+
+                        <div className="pricing-total">
+                          {pricing.breakdown.total.toLocaleString()} ISK
+                        </div>
+
+                        <div className="pricing-route">
+                          <strong>{pricing.origin}</strong>
+                          {" → "}
+                          <strong>{pricing.destination}</strong>
+                        </div>
+
+                        <div className="pricing-jumps">
+                          {pricing.route.distance_jumps} jumps
+                          {" · "}
+                          {pricing.route.high_sec_jumps} HS
+                          {" · "}
+                          {pricing.route.low_sec_jumps} LS
+                          {" · "}
+                          {pricing.route.null_sec_jumps} NS
+                        </div>
+
+                        <div className="pricing-breakdown">
+                          <h3>Pricing Breakdown</h3>
+                          <div className="pricing-row">
+                            <span>Volume</span>
+                            <span>
+                              {pricing.breakdown.volume_cost.toLocaleString()}{" "}
+                              ISK
+                            </span>
+                          </div>
+
+                          <div className="pricing-row">
+                            <span>Distance</span>
+                            <span>
+                              {pricing.breakdown.distance_cost.toLocaleString()}{" "}
+                              ISK
+                            </span>
+                          </div>
+
+                          <div className="pricing-row">
+                            <span>Collateral</span>
+                            <span>
+                              {pricing.breakdown.collateral_cost.toLocaleString()}{" "}
+                              ISK
+                            </span>
+                          </div>
+
+                          <div className="pricing-row">
+                            <span>Jump fuel</span>
+                            <span>
+                              {pricing.breakdown.jump_fuel_cost.toLocaleString()}{" "}
+                              ISK
+                            </span>
+                          </div>
+
+                          <div className="pricing-row">
+                            <span>Cyno</span>
+                            <span>
+                              {pricing.breakdown.cyno_cost.toLocaleString()} ISK
+                            </span>
+                          </div>
+                        </div>
+                        <div className="pricing-risk">
+                          <div>
+                            <span>Route risk</span>
+                            <span>
+                              {pricing.breakdown.route_risk.toFixed(2)}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span>Gank risk</span>
+                            <span>
+                              {(pricing.breakdown.gank_risk * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <label>
                       Contract ID

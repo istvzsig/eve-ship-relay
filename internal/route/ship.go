@@ -103,8 +103,6 @@ func ShipSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	limit := 10
 
-	fmt.Println("query", query)
-
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 50 {
 			limit = parsed
